@@ -65,6 +65,12 @@
     col = m.fs.collection(fs, "schools", CFG.school || "school", "units");
     auth = m.auth.getAuth(app);
 
+    // 이 창에서 로그인(리다이렉트)하고 돌아왔는데 실패했다면 이유를 알려 줌
+    m.auth.getRedirectResult(auth).catch(function (e) {
+      console.error("[cloud]", e);
+      state("login", loginError(e));
+    });
+
     m.auth.onAuthStateChanged(auth, function (user) {
       if (user) {
         C.user = { name: user.displayName || user.email || "선생님", email: user.email || "" };
@@ -107,21 +113,36 @@
     return M.fs.setDoc(ref, data);
   };
 
-  C.signIn = function () {
-    if (!auth) return;
+  // 실패 이유를 선생님이 읽을 수 있는 말로
+  function loginError(e) {
+    var code = (e && e.code) || "";
+    if (/unauthorized-domain/.test(code)) return "이 주소가 파이어베이스에 승인되지 않았습니다. Authentication > 설정 > 승인된 도메인에 이 주소를 추가해 주세요.";
+    if (/operation-not-allowed|configuration-not-found/.test(code)) return "구글 로그인이 켜져 있지 않습니다. Authentication에서 Google 로그인을 사용 설정해 주세요.";
+    if (/network-request-failed/.test(code)) return "인터넷 연결을 확인하고 다시 눌러 주세요.";
+    if (/account-exists|credential/.test(code)) return "이 계정으로는 로그인할 수 없습니다. 다른 구글 계정으로 시도해 주세요.";
+    return "로그인하지 못했습니다. 다시 눌러 주세요." + (code ? " (" + code + ")" : "");
+  }
+
+  // useRedirect: 팝업 대신 이 창에서 로그인 (팝업이 막히는 환경용)
+  C.signIn = function (useRedirect) {
+    if (!auth) { state("error", "아직 연결 준비가 끝나지 않았습니다. 잠시 후 다시 눌러 주세요."); return; }
     var m = M.auth, p = new m.GoogleAuthProvider();
     p.setCustomParameters({ prompt: "select_account" });
-    state("connecting");
+    var redirect = function () {
+      state("connecting", "이 창에서 구글 로그인 화면으로 이동합니다…");
+      return m.signInWithRedirect(auth, p).catch(function (e) { console.error("[cloud]", e); state("login", loginError(e)); });
+    };
+    if (useRedirect) return redirect();
+    state("connecting", "로그인 창을 여는 중입니다. 새 창이 뜨면 계정을 골라 주세요.");
     m.signInWithPopup(auth, p).catch(function (e) {
       var code = (e && e.code) || "";
-      if (/popup-blocked/.test(code)) return m.signInWithRedirect(auth, p);
-      if (/popup-closed|cancelled-popup/.test(code)) { state("login", ""); return; }
+      if (/popup-blocked/.test(code)) return redirect();
+      if (/popup-closed|cancelled-popup|user-cancelled/.test(code)) {
+        state("login", "로그인 창이 닫혔습니다. 다시 눌러 보시고, 새 창이 안 뜨면 아래 ‘이 창에서 로그인’을 눌러 주세요.");
+        return;
+      }
       console.error("[cloud]", e);
-      state("login", /unauthorized-domain/.test(code)
-        ? "이 주소가 파이어베이스에 승인되지 않았습니다. Authentication > Settings > 승인된 도메인에 이 주소를 추가해 주세요."
-        : /operation-not-allowed|configuration-not-found/.test(code)
-          ? "구글 로그인이 켜져 있지 않습니다. Authentication > Sign-in method에서 Google을 사용 설정해 주세요."
-          : "로그인하지 못했습니다. 다시 눌러 주세요.");
+      state("login", loginError(e));
     });
   };
 

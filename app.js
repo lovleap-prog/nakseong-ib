@@ -49,7 +49,8 @@
     var h = '<span class="sync" id="sync" data-s="' + (s === "live" ? "live" : s === "cache" ? "live" : s === "error" || s === "login" ? "err" : "saving") + '"><i></i>' +
       (CLOUD_LABEL[s] || s) + "</span>";
     if (S.cloud && S.cloud.msg) h += '<span class="backup-note warn">' + esc(S.cloud.msg) + "</span>";
-    if (s === "login") h += '<button class="btn primary" data-act="cloudIn" style="justify-content:flex-start">구글 계정으로 로그인</button>';
+    if (s === "login") h += '<button class="btn primary" data-act="cloudIn" style="justify-content:flex-start">구글 계정으로 로그인</button>' +
+      '<button class="btn ghost" data-act="cloudInHere" style="justify-content:flex-start;font-size:11.5px">새 창이 안 열리면 · 이 창에서 로그인</button>';
     if (s === "error") h += '<button class="btn" data-act="cloudRetry" style="justify-content:flex-start">다시 연결해 보기</button>' + backupNote();
     if (window.CLOUD && CLOUD.user)
       h += '<span style="font-size:11.5px;color:var(--faint);line-height:1.5">' + esc(CLOUD.user.name) + ' 계정으로 접속 · ' +
@@ -492,7 +493,8 @@
     printUnit: function (u) { if (window.printUnit) window.printUnit(u); return false; },
     import: function () { document.getElementById("importFile").click(); },
     // ───── 학교 공동 저장소 ─────
-    cloudIn: function () { if (window.CLOUD) CLOUD.signIn(); return false; },
+    cloudIn: function () { if (window.CLOUD) { CLOUD.signIn(); renderSide(); } return false; },
+    cloudInHere: function () { if (window.CLOUD) { CLOUD.signIn(true); renderSide(); } return false; },
     cloudOut: function () {
       dialog({ title: "로그아웃할까요?", ok: "로그아웃",
         body: "<span>로그아웃하면 학교 서버의 단원을 더 볼 수 없습니다. 이 브라우저에 남은 사본은 지워지지 않습니다.</span>" })
