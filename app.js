@@ -259,9 +259,21 @@
     }).join("") + "</div></div>";
     h += '<div class="box wide"><h3>명시된 개념 · 개념 질문</h3><dl>' + P.concepts.map(function (c) { return "<dt>" + c.ko + " <span class=\"mono\" style=\"color:var(--faint);font-weight:400\">" + c.en + "</span></dt><dd>" + c.q + "<br>함께 쓰는 추가 개념 예: " + c.rel + "</dd>"; }).join("") + "</dl></div>";
     h += '<div class="box wide"><h3>학습 접근 방법 (ATL)</h3><dl>' + P.atl.map(function (g) { return "<dt>" + g.group + "</dt><dd>" + g.items.map(function (i) { return "<b>" + i[0] + "</b> — " + i[1]; }).join("<br>") + "</dd>"; }).join("") + "</dl></div>";
-    Object.keys(P.models).forEach(function (m) {
-      h += '<div class="box"><h3>' + m + ' <span class="pill">' + (m.indexOf("Murdoch") >= 0 ? "Murdoch, 2015" : "Marschall & French, 2018") + "</span></h3>" + P.models[m].map(function (s, i) { return '<div class="stage"><span class="k">' + (i === 6 ? "★" : i + 1) + "</span><span><b>" + s[0] + '</b> <span class="mono" style="color:var(--faint)">' + s[1] + "</span><br>" + s[2] + "</span></div>"; }).join("") + "</div>";
-    });
+    // 탐구 조각(기본)은 한 줄 전체를 쓰고, 참고 모형 둘은 그 아래에서 화면을 반씩 나눠 씀
+    function modelBox(m) {
+      var free = m === P.freeModel, c = P.cycles[m] || {}, n = 0;
+      var cite = free ? "세 자료를 종합해 이 앱에서 구성"
+        : m.indexOf("Murdoch") >= 0 ? "Murdoch, 2015" : "Marschall & French, 2018";
+      return '<div class="box"' + (free ? ' style="grid-column:1/-1"' : "") + "><h3>" + m + ' <span class="pill">' + cite + "</span></h3>" +
+        (free ? '<p class="note" style="margin:-4px 0 10px">차시마다 골라 쓰는 <b>기본 목록</b>입니다. 정해진 순서는 없으며, 아래 두 참고 모형의 단계에 2025 PYP의 질문하기·실천·다양한 표현을 더해 구성했습니다.</p>' : "") +
+        '<div class="stages">' + P.models[m].map(function (s) {
+          var star = c.reflect === s[0];
+          return '<div class="stage"><span class="k">' + (star ? "★" : ++n) + "</span><span><b>" + s[0] + '</b> <span class="mono" style="color:var(--faint)">' + s[1] + "</span><br>" + s[2] + "</span></div>";
+        }).join("") + "</div></div>";
+    }
+    h += modelBox(P.freeModel);
+    h += '<div class="ref" style="grid-column:1/-1;grid-template-columns:repeat(auto-fit,minmax(330px,1fr))">' +
+      Object.keys(P.models).filter(function (m) { return m !== P.freeModel; }).map(modelBox).join("") + "</div>";
     h += '<div class="box" style="grid-column:1/-1;background:var(--accent-soft);border-color:transparent"><h3>2025 PYP 개편 핵심 (적용 기한 2027년 9월)</h3><dl>' +
       "<dt>초학문적 주제 설명</dt><dd>2024년 12월 개정. 인간 경험의 공통점 중심에서 인간과 자연 세계의 균형·상호연결로 초점 이동. 도입 문장 1개와 세부 항목 3개 형식. 주제 6개 이름은 그대로.</dd>" +
       "<dt>개념 용어</dt><dd>핵심 개념 → <b>명시된 개념</b>(specified concepts), 관련 개념 → <b>추가 개념</b>(additional concepts). 일곱 개념의 설명은 그대로.</dd>" +

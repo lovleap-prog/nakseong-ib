@@ -178,7 +178,9 @@ td input:hover,td select:hover,td textarea:hover{border-color:var(--line)}
 }
 /* 설명이 긴 목록은 넓은 화면에서 두 칸 차지 */
 @media (min-width:1180px){.ref .box.wide{grid-column:span 2}}
-.stage{display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line)}
+/* 단계 목록: 칸이 넓으면 여러 열로 흘려 가로 공간을 씀 */
+.stages{columns:290px;column-gap:28px}
+.stage{display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line);break-inside:avoid;-webkit-column-break-inside:avoid}
 .stage:last-child{border:none}
 .stage .k{font-family:var(--f-mono);color:var(--faint)}
 
@@ -424,23 +426,23 @@ td.rowbtn .btn{padding:5px 7px}
 <input type="file" id="importFile" accept=".json" hidden>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="data.js?v=5"></script>
-<script src="school.js?v=5"></script>
-<script src="standards.js?v=5"></script>
-<script src="starters_a.js?v=5"></script>
-<script src="starters_b.js?v=5"></script>
-<script src="starters_c.js?v=5"></script>
-<script src="firebase-config.js?v=5"></script>
-<script src="firebase.js?v=5"></script>
-<script src="store.js?v=5"></script>
-<script src="unit.js?v=5"></script>
-<script src="unit2.js?v=5"></script>
-<script src="app.js?v=5"></script>
-<script src="std.js?v=5"></script>
-<script src="prompts.js?v=5"></script>
-<script src="bridge.js?v=5"></script>
-<script src="ai.js?v=5"></script>
-<script src="chat.js?v=5"></script>
-<script src="starters.js?v=5"></script>
-<script src="print.js?v=5"></script>
+<script src="data.js?v=6"></script>
+<script src="school.js?v=6"></script>
+<script src="standards.js?v=6"></script>
+<script src="starters_a.js?v=6"></script>
+<script src="starters_b.js?v=6"></script>
+<script src="starters_c.js?v=6"></script>
+<script src="firebase-config.js?v=6"></script>
+<script src="firebase.js?v=6"></script>
+<script src="store.js?v=6"></script>
+<script src="unit.js?v=6"></script>
+<script src="unit2.js?v=6"></script>
+<script src="app.js?v=6"></script>
+<script src="std.js?v=6"></script>
+<script src="prompts.js?v=6"></script>
+<script src="bridge.js?v=6"></script>
+<script src="ai.js?v=6"></script>
+<script src="chat.js?v=6"></script>
+<script src="starters.js?v=6"></script>
+<script src="print.js?v=6"></script>
 <script>if (window.APP && APP.rerender) APP.rerender();</script>
