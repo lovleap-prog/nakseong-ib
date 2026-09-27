@@ -209,22 +209,25 @@ window.checkUnit = function (u, all) {
   var hasConceptRow = u.rubric.some(function (r) { return r.domain === "개념적 이해"; });
   add(hasConceptRow ? "ok" : "warn", "assess", "루브릭에 개념적 이해 기준", u.rubric.length ? "중심 아이디어 이해를 보는 기준을 하나 넣으세요." : "루브릭이 아직 없습니다.");
 
-  var stages = P.models[u.model].map(function (s) { return s[0]; });
-  var used = new Set(u.lessons.map(function (l) { return l.stage; }));
-  var missing = stages.filter(function (s) { return !used.has(s); });
   var nl = u.lessons.length;
-  add(nl === 0 ? "bad" : missing.length ? "warn" : "ok", "lessons", "탐구 단계 모두 배치", missing.length && nl ? "빠진 단계: " + missing.join(", ") : "", true);
-  // LOI 하나 안에서도 작은 탐구가 한 바퀴(조사 → 정리 → 공유·일반화) 도는지
-  if (nl) {
-    var gaps = [];
-    ["LOI1", "LOI2", "LOI3"].forEach(function (f) {
-      var roles = u.lessons.filter(function (l) { return l.flow === f; }).map(function (l) { return stageRole(u.model, l.stage); });
-      if (!roles.length) { gaps.push(f + " 차시 없음"); return; }
-      var miss = [["inv", "조사"], ["org", "정리"], ["gen", "공유·일반화"]].filter(function (r) { return roles.indexOf(r[0]) < 0; }).map(function (r) { return r[1]; });
-      if (miss.length) gaps.push(f + ": " + miss.join("·") + " 없음");
-    });
-    add(gaps.length ? "warn" : "ok", "lessons", "LOI마다 조사 → 정리 → 공유·일반화", gaps.length ? gaps.join(" / ") + ". LOI 하나 안에서도 작은 탐구가 한 바퀴 돌도록 배치해 보세요." : "", true);
+  if (u.model === P.freeModel) {
+    // 탐구 조각: 정해진 순서는 없음 — 탐구를 여는 차시와 배운 것을 모으는 차시가 있는지만 봄
+    var roles = u.lessons.map(function (l) { return stageRole(u.model, l.stage); });
+    var opens = roles.some(function (r) { return r === "open" || r === "ask" || r === "know"; });
+    var ends = roles.some(function (r) { return r === "gen" || r === "share" || r === "close"; });
+    add(nl === 0 ? "bad" : opens && ends ? "ok" : "warn", "lessons", "탐구를 여는 차시와 모으는 차시",
+      !nl ? "" : !opens ? "관계 맺기·질문 만들기·지식·이해처럼 탐구를 여는 차시가 있는지 보세요." : !ends ? "일반화·표현·공유·적용처럼 배운 것을 모으는 차시가 있는지 보세요." : "", true);
+    var blank = u.lessons.filter(function (l) { return !l.stage; }).length;
+    if (nl) add(blank ? "warn" : "ok", "lessons", "차시마다 탐구 조각 고르기", blank ? blank + "개 차시가 비어 있습니다. 학년과 단원에 맞게 골라 주세요." : "");
+  } else {
+    var stages = P.models[u.model].map(function (s) { return s[0]; });
+    var used = new Set(u.lessons.map(function (l) { return l.stage; }));
+    var missing = stages.filter(function (s) { return !used.has(s); });
+    add(nl === 0 ? "bad" : missing.length ? "warn" : "ok", "lessons", "탐구 단계 모두 배치", missing.length && nl ? "빠진 단계: " + missing.join(", ") : "", true);
   }
+  var flowsUsed = new Set(u.lessons.map(function (l) { return l.flow; }));
+  var loiNo = ["LOI1", "LOI2", "LOI3"].filter(function (f) { return !flowsUsed.has(f); });
+  if (nl) add(loiNo.length ? "warn" : "ok", "lessons", "LOI마다 차시 배정", loiNo.length ? loiNo.join(", ") + " 차시가 없습니다." : "");
   var ilps = new Set(u.lessons.map(function (l) { return l.ilp; }).filter(Boolean));
   if (nl) add(ilps.size >= 2 ? "ok" : "warn", "lessons", "탐구 기능 발달 단계 연결", "관찰·역할·질문·의사결정 중 두 가지 이상을 차시에 연결해 보세요.");
 

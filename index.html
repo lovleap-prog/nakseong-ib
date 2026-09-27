@@ -337,19 +337,30 @@ table.lessons tr.blk td{background:var(--sunk);padding:8px 10px;border-top:2px s
 .blk-in>b{font-family:var(--f-display);font-size:14px}
 .blk-in .blk-loi{color:var(--muted)}
 .blk-in .btn{margin-left:auto;padding:3px 10px;font-size:12px}
-.cyc{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:11.5px}
-.cyc span[data-on]{padding:1px 8px;border-radius:999px;white-space:nowrap}
-.cyc span[data-on="true"]{background:var(--ok-soft);color:var(--ok)}
-.cyc span[data-on="false"]{background:var(--warn-soft);color:var(--warn)}
-.cyc i{font-style:normal;font-weight:600}
-.cyc .arr{color:var(--faint)}
-td.stg{border-left:3px solid transparent}
-td.stg[data-r="open"]{border-left-color:var(--htww)}
-td.stg[data-r="inv"]{border-left-color:var(--wwapt)}
-td.stg[data-r="org"]{border-left-color:var(--hweo)}
-td.stg[data-r="gen"]{border-left-color:var(--ok)}
-td.stg[data-r="close"]{border-left-color:var(--wwa)}
-td.stg[data-r="reflect"],td.stg[data-r="deeper"]{border-left-color:var(--faint)}
+/* 탐구 조각 색 — 좋고 나쁨이 아니라 종류를 구분하는 색 */
+[data-r="open"]{--rc:var(--htww)}[data-r="know"]{--rc:var(--stp)}[data-r="ask"]{--rc:var(--htww)}
+[data-r="inv"]{--rc:var(--wwapt)}[data-r="org"]{--rc:var(--hweo)}[data-r="deeper"]{--rc:var(--hweo)}
+[data-r="gen"]{--rc:var(--hwoo)}[data-r="share"]{--rc:var(--wwa)}[data-r="close"]{--rc:var(--wwa)}
+[data-r="act"]{--rc:var(--ok)}[data-r="reflect"]{--rc:var(--faint)}[data-r="none"]{--rc:var(--line-strong)}
+.seq{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:11.5px}
+.seq span[data-r]{padding:1px 8px 1px 7px;border-radius:999px;white-space:nowrap;background:var(--surface);border:1px solid var(--line);display:inline-flex;align-items:center;gap:5px}
+.seq span[data-r]::before,.routine .fit span::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--rc);flex:none}
+.seq span[data-r="none"]{color:var(--faint)}
+.seq .none{color:var(--faint)}
+.seq i{font-style:normal;font-weight:600;color:var(--muted)}
+.seq .arr{color:var(--faint)}
+td.stg{border-left:3px solid var(--rc,transparent)}
+.pill.zero{opacity:.55}
+.fm-n{font-family:var(--f-mono);font-size:11px;color:var(--faint);font-weight:400}
+details.tip{margin:-6px 0 16px}
+details.tip .more-body p{margin:0 0 6px}
+.opt-card{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-top:8px;cursor:pointer;background:var(--surface)}
+.opt-card:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opt-card input{margin-top:4px}
+.opt-card b{display:block;font-size:13.5px}
+.opt-card small{display:block;color:var(--muted);font-size:12px;line-height:1.55;margin-top:2px}
+.routine .fit{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.routine .fit span{font-size:10.5px;padding:0 7px 0 6px;border-radius:999px;background:var(--sunk);color:var(--muted);display:inline-flex;align-items:center;gap:4px}
 table.lessons td select{font-size:13px}
 td.rowbtn{white-space:nowrap}
 td.rowbtn .btn{padding:5px 7px}
@@ -369,9 +380,7 @@ td.rowbtn .btn{padding:5px 7px}
 .rt-group{margin-top:12px}
 .rt-group>.label{display:block;margin-bottom:6px}
 .routines{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
-.routine{border:1px solid var(--line);border-left:3px solid var(--line-strong);border-radius:var(--r);padding:9px 11px;background:var(--surface);font-size:12.5px}
-.routine[data-r="open"]{border-left-color:var(--htww)}.routine[data-r="inv"]{border-left-color:var(--wwapt)}.routine[data-r="org"]{border-left-color:var(--hweo)}
-.routine[data-r="gen"]{border-left-color:var(--ok)}.routine[data-r="reflect"]{border-left-color:var(--faint)}
+.routine{border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;background:var(--surface);font-size:12.5px}
 .routine b{display:block;font-size:13px}
 .routine .en{color:var(--faint);font-size:11px}
 .routine p{margin:4px 0 0;color:var(--muted);line-height:1.55}
@@ -405,23 +414,23 @@ td.rowbtn .btn{padding:5px 7px}
 <input type="file" id="importFile" accept=".json" hidden>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="data.js?v=3"></script>
-<script src="school.js?v=3"></script>
-<script src="standards.js?v=3"></script>
-<script src="starters_a.js?v=3"></script>
-<script src="starters_b.js?v=3"></script>
-<script src="starters_c.js?v=3"></script>
-<script src="firebase-config.js?v=3"></script>
-<script src="firebase.js?v=3"></script>
-<script src="store.js?v=3"></script>
-<script src="unit.js?v=3"></script>
-<script src="unit2.js?v=3"></script>
-<script src="app.js?v=3"></script>
-<script src="std.js?v=3"></script>
-<script src="prompts.js?v=3"></script>
-<script src="bridge.js?v=3"></script>
-<script src="ai.js?v=3"></script>
-<script src="chat.js?v=3"></script>
-<script src="starters.js?v=3"></script>
-<script src="print.js?v=3"></script>
+<script src="data.js?v=4"></script>
+<script src="school.js?v=4"></script>
+<script src="standards.js?v=4"></script>
+<script src="starters_a.js?v=4"></script>
+<script src="starters_b.js?v=4"></script>
+<script src="starters_c.js?v=4"></script>
+<script src="firebase-config.js?v=4"></script>
+<script src="firebase.js?v=4"></script>
+<script src="store.js?v=4"></script>
+<script src="unit.js?v=4"></script>
+<script src="unit2.js?v=4"></script>
+<script src="app.js?v=4"></script>
+<script src="std.js?v=4"></script>
+<script src="prompts.js?v=4"></script>
+<script src="bridge.js?v=4"></script>
+<script src="ai.js?v=4"></script>
+<script src="chat.js?v=4"></script>
+<script src="starters.js?v=4"></script>
+<script src="print.js?v=4"></script>
 <script>if (window.APP && APP.rerender) APP.rerender();</script>

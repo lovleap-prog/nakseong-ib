@@ -187,7 +187,7 @@
         if (e.target === m) return close(null);
         var b = e.target.closest("[data-m]"); if (!b) return;
         if (b.dataset.m !== "ok") return close(null);
-        var vals = {}; m.querySelectorAll("[name]").forEach(function (i) { vals[i.name] = i.value; }); close(vals);
+        var vals = {}; m.querySelectorAll("[name]").forEach(function (i) { if ((i.type === "radio" || i.type === "checkbox") && !i.checked) return; vals[i.name] = i.value; }); close(vals);
       }
       function onKey(e) {
         if (e.key === "Escape") { e.stopPropagation(); close(null); }
@@ -329,31 +329,38 @@
   }
 
   function scaffold(u) {
-    var n = Math.max(14, Number(u.lessonsPlanned) || 24); // LOI마다 최소 한 바퀴(3차시)씩 돌려면 14차시 이상
-    if (!u.lessons.length) return buildScaffold(u, n);
-    dialog({ title: "차시표를 새로 채울까요?", danger: true, ok: "지우고 새로 채우기",
-      body: "지금 차시표 <b>" + u.lessons.length + "개 차시</b>에 적은 내용이 모두 지워지고, 계획 차시 <b>" + n + "차시</b> 뼈대로 바뀝니다. 직후 알림에서 되돌릴 수 있습니다." })
+    var n = Math.max(14, Number(u.lessonsPlanned) || 24); // LOI마다 3차시 이상 되려면 14차시 이상
+    var c = P.cycles[u.model] || P.cycles[P.freeModel];
+    var tipText = c.tip.map(function (s) { return P.roleNames[stageRole(u.model, s)] || s; }).join(" → ");
+    dialog({ title: "차시 뼈대 만들기", danger: !!u.lessons.length, ok: u.lessons.length ? "지우고 새로 만들기" : "만들기",
+      body: (u.lessons.length ? '<p class="note" style="color:var(--bad);margin:0 0 10px">지금 차시표 <b>' + u.lessons.length + "개 차시</b>에 적은 내용이 지워집니다. 직후 알림에서 되돌릴 수 있습니다.</p>" : "") +
+        "<p>계획 차시 <b>" + n + "차시</b>를 탐구 열기 · LOI 1~3 · 마무리에 나눕니다. LOI 차시는 어떻게 채울까요?</p>" +
+        '<label class="opt-card"><input type="radio" name="pattern" value="flows" checked><span><b>흐름만 나누기</b><small>LOI 차시의 탐구 조각은 비워 두고, 학년·단원에 맞게 직접 고릅니다.</small></span></label>' +
+        '<label class="opt-card"><input type="radio" name="pattern" value="tip"><span><b>팁 예시로 채우기</b><small>LOI마다 ' + tipText + " 흐름으로 채웁니다. 컨설팅에서 나온 설계 팁이며 IB 공식 틀은 아닙니다. 채운 뒤 자유롭게 고치세요.</small></span></label>" })
       .then(function (v) {
         if (!v) return;
-        var before = clone(u); buildScaffold(u, n);
-        toast("차시표를 새로 채웠습니다.", "되돌리기", function () { S.save(before, true); render(); });
+        var before = clone(u), had = u.lessons.length; buildScaffold(u, n, v.pattern);
+        if (had) toast("차시표를 새로 만들었습니다.", "되돌리기", function () { S.save(before, true); render(); });
+        else toast(v.pattern === "tip" ? "팁 예시로 뼈대를 만들었습니다. LOI마다 자유롭게 고쳐 쓰세요." : "흐름을 나눴습니다. LOI 차시마다 탐구 조각을 골라 주세요.");
       });
   }
-  // 탐구 열기 → LOI마다 작은 순환(조사 → 정리 → 공유·일반화) → 전이·마무리 → 성찰
-  //  24차시 예: 열기 3 · LOI 5+5+5(조사2·정리2·일반화1) · 마무리 5 · 성찰 1
-  function buildScaffold(u, n) {
-    var c = P.cycles[u.model] || P.cycles["개념 기반 탐구"], rows = [];
-    function push(flow, stage) { rows.push({ flow: flow, stage: stage, ilp: "", method: "", note: "", reflection: "", studentRefl: "", studentWork: "" }); }
-    var open = n >= 22 ? 3 : 2, close = Math.max(2, Math.round(n * 0.2)), loops = n - open - close - 1;
-    if (loops < 9) { close = 2; loops = Math.max(9, n - open - close - 1); } // 짧은 단원도 LOI마다 한 바퀴(3차시)는 돌게
-    for (var i = 0; i < open; i++) push("탐구열기", i < open - 1 ? c.open[0] : c.open[c.open.length - 1]);
-    var per = [0, 0, 0]; for (i = 0; i < loops; i++) per[i % 3]++;
+  // 탐구 열기 · LOI 1~3 · 마무리에 차시를 나눔
+  //  pattern "flows": LOI 차시는 비워 둠 / "tip": LOI마다 팁 흐름(예: 지식·이해 → 조사 → 정리·분석 → 표현·공유)
+  //  24차시 예: 열기 3 · LOI 5+5+5 · 마무리 5 · 성찰 1
+  function buildScaffold(u, n, pattern) {
+    var c = P.cycles[u.model] || P.cycles[P.freeModel], rows = [];
+    function push(flow, stage) { rows.push({ flow: flow, stage: stage || "", ilp: "", method: "", note: "", reflection: "", studentRefl: "", studentWork: "" }); }
+    var open = n >= 22 ? 3 : 2, close = Math.max(2, Math.round(n * 0.2)), body = n - open - close - 1;
+    if (body < 9) { close = 2; body = Math.max(9, n - open - close - 1); }
+    for (var i = 0; i < open; i++) push("탐구열기", c.open[Math.min(i, c.open.length - 1)]);
+    var per = [0, 0, 0]; for (i = 0; i < body; i++) per[i % 3]++;
     ["LOI1", "LOI2", "LOI3"].forEach(function (f, k) {
-      var m = per[k], org = m >= 5 ? 2 : 1, inv = Math.max(1, m - org - 1);
-      for (var j = 0; j < inv; j++) push(f, c.loop[0]);
-      if (c.deeper && k === 2 && inv > 1) rows[rows.length - 1].stage = c.deeper; // 머독 모형: 마지막 LOI에서 더 나아가기
-      for (j = 0; j < org; j++) push(f, c.loop[1]);
-      push(f, c.loop[2]);
+      var m = per[k];
+      if (pattern !== "tip") { for (var j = 0; j < m; j++) push(f, ""); return; }
+      var T = c.tip.slice(); while (T.length > m) T.shift(); // 차시가 적으면 앞(지식·이해)부터 뺌
+      var cnt = T.map(function () { return 1; }), iv = Math.max(0, T.length - 3), og = iv + 1; // 남는 차시는 조사 → 정리 순으로
+      for (var e = 0; e < m - T.length; e++) cnt[e % 2 === 0 ? iv : og]++;
+      T.forEach(function (s, q) { for (var r = 0; r < cnt[q]; r++) push(f, s); });
     });
     for (i = 0; i < close; i++) push("탐구 마무리", c.close[0]);
     push("탐구 마무리", c.reflect);
@@ -482,20 +489,15 @@
       if (j < 0 || j >= u.lessons.length) return false;
       var x = u.lessons.splice(i, 1)[0]; u.lessons.splice(j, 0, x);
     },
-    // 흐름 머리줄의 ＋: 그 LOI 순환에서 빠진 단계부터 채우고, 알맞은 자리에 끼워 넣음
+    // 흐름 머리줄의 ＋: 그 흐름의 끝에 차시를 하나 더함 (LOI 차시의 조각은 선생님이 고름)
     addLessonIn: function (u, el) {
-      var f = el.dataset.f, c = P.cycles[u.model] || P.cycles["개념 기반 탐구"], ORDER = { open: 0, inv: 1, deeper: 1.5, org: 2, gen: 3, close: 4, reflect: 5 };
-      var mine = []; u.lessons.forEach(function (l, i) { if (l.flow === f) mine.push({ i: i, r: stageRole(u.model, l.stage) }); });
-      var stage, role;
-      if (/^LOI/.test(f)) {
-        var have = mine.map(function (x) { return x.r; });
-        role = ["inv", "org", "gen"].filter(function (r) { return have.indexOf(r) < 0; })[0] || "inv";
-        stage = c.loop[["inv", "org", "gen"].indexOf(role)];
-      } else { role = f === "탐구열기" ? "open" : "close"; stage = role === "open" ? c.open[0] : c.close[0]; }
-      var at = -1; mine.forEach(function (x) { if ((ORDER[x.r] == null ? 9 : ORDER[x.r]) <= ORDER[role]) at = x.i; });
-      if (at < 0) at = mine.length ? mine[0].i - 1 : u.lessons.length - 1;
-      u.lessons.splice(at + 1, 0, { flow: f, stage: stage, ilp: "", method: "", note: "", reflection: "", studentRefl: "", studentWork: "" });
-      toast((at + 2) + "차시에 ‘" + stage + "’ 차시를 넣었습니다.");
+      var f = el.dataset.f, c = P.cycles[u.model] || P.cycles[P.freeModel], last = -1;
+      u.lessons.forEach(function (l, i) { if (l.flow === f) last = i; });
+      var stage = /^LOI/.test(f) ? "" : f === "탐구열기" ? c.open[0] : c.close[0];
+      if (f === "탐구 마무리" && last >= 0 && u.lessons[last].stage === c.reflect) last--; // 마지막 성찰 차시 앞에
+      if (last < 0) last = u.lessons.length - 1;
+      u.lessons.splice(last + 1, 0, { flow: f, stage: stage, ilp: "", method: "", note: "", reflection: "", studentRefl: "", studentWork: "" });
+      toast((last + 2) + "차시를 넣었습니다." + (stage ? "" : " 탐구 조각을 골라 주세요."));
     },
     scaffold: function (u) { scaffold(u); return false; },
     xlsxUnit: function (u) { Exporter.xlsx([u], true); return false; },
