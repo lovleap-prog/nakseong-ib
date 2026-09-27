@@ -56,7 +56,7 @@ IB PYP 탐구단원(UOI)을 처음 설계하는 선생님을 위한 웹 앱입�
 
 1. [github.com](https://github.com)에 로그인합니다. (계정이 없으면 가입)
 2. 오른쪽 위 **＋ → New repository**
-   - Repository name: 예) `nakseong-uoi`
+   - Repository name: 예) `nakseong-ib`
    - **Public** 선택 (무료 GitHub Pages는 공개 저장소에서 동작)
    - **Create repository**
 3. 새 저장소 화면에서 **uploading an existing file** 링크를 누릅니다.
@@ -68,7 +68,7 @@ IB PYP 탐구단원(UOI)을 처음 설계하는 선생님을 위한 웹 앱입�
    - Source: **Deploy from a branch**
    - Branch: **main**, 폴더 **/(root)** → **Save**
 7. 1~2분 뒤 같은 화면 위쪽에 주소가 나옵니다.
-   예) `https://아이디.github.io/nakseong-uoi/`
+   예) `https://아이디.github.io/nakseong-ib/`
 8. 이 주소를 선생님들께 나누면 됩니다.
 
 ### 고친 내용을 다시 올릴 때
@@ -83,20 +83,22 @@ IB PYP 탐구단원(UOI)을 처음 설계하는 선생님을 위한 웹 앱입�
 
 ### 1단계 — 프로젝트 만들기
 1. [console.firebase.google.com](https://console.firebase.google.com) 접속 (학교 구글 계정 권장)
-2. **프로젝트 추가** → 이름 예) `nakseong-uoi` → Google 애널리틱스는 **사용 안 함** → 만들기
+2. **프로젝트 추가** → 이름 예) `nakseong-ib` → Gemini와 Google 애널리틱스는 **사용 안 함** → 만들기
 
 ### 2단계 — 구글 로그인 켜기
-3. 왼쪽 **빌드 > Authentication** → **시작하기**
-4. **Sign-in method** 탭 → **Google** → 사용 설정 → 지원 이메일 선택 → 저장
+3. 왼쪽 **보안 > Authentication** → **시작하기**
+4. **Google** 선택 → 사용 설정 → **공개용 이름**을 알아보기 쉽게(예: `낙성 IB 탐구 설계실`) → 지원 이메일 선택 → 저장
+   - 공개용 이름은 선생님들이 로그인할 때 보는 이름입니다.
 
 ### 3단계 — 데이터베이스 만들기
-5. 왼쪽 **빌드 > Firestore Database** → **데이터베이스 만들기**
-6. 위치는 **asia-northeast3 (서울)**, 모드는 **프로덕션 모드**로 시작
+5. 왼쪽 **데이터베이스 및 스토리지 > Firestore Database** → **데이터베이스 만들기**
+6. **Standard 버전**, ID는 `(default)`, 위치는 **asia-northeast3 (서울)**, 모드는 **프로덕션 모드**
+   - 위치는 나중에 바꿀 수 없습니다. 예약된 백업은 유료이므로 건너뜁니다.
 7. **규칙(Rules)** 탭 → 이 폴더의 `firestore.rules` 내용을 붙여 넣고, `teachers()` 목록을 **우리 학교 선생님들의 구글 이메일**로 바꾼 뒤 **게시**
    - 여기 적힌 계정만 읽고 쓸 수 있습니다. 새 선생님이 오면 이메일을 추가하고 다시 게시하세요.
 
 ### 4단계 — 앱에 설정 값 넣기
-8. 콘솔 왼쪽 위 **⚙ 프로젝트 설정** → 아래 **내 앱** → **웹(</>)** 아이콘 → 앱 닉네임 입력 → 등록
+8. 콘솔 왼쪽 **⚙ 설정 > 일반** → 아래 **내 앱** → **웹(</>)** 아이콘 → 앱 닉네임 입력 → 등록 (호스팅 체크 안 함)
 9. 나오는 `firebaseConfig` 값을 `firebase-config.js`의 같은 이름 칸에 옮겨 적고, **`enabled: true`** 로 바꿉니다.
 10. 바뀐 `firebase-config.js`를 깃허브에 다시 올립니다.
 

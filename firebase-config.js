@@ -9,15 +9,16 @@
 
 window.FIREBASE = {
   // ① 연결 준비가 끝나면 true 로 바꿉니다
-  enabled: false,
+  enabled: true,
 
-  // ② 파이어베이스 콘솔 > 프로젝트 설정 > 내 앱 > SDK 설정 및 구성에서
-  //    firebaseConfig 값을 그대로 옮겨 적습니다
+  // ② 파이어베이스 콘솔 > 설정 > 일반 > 내 앱 에서 firebaseConfig 값을 그대로 옮겨 적습니다
   config: {
-    apiKey: "",
-    authDomain: "",       // 예) nakseong-uoi.firebaseapp.com
-    projectId: "",        // 예) nakseong-uoi
-    appId: ""
+    apiKey: "AIzaSyBgVkZli_kmGvejrDBUeCZsFJi_OzckPpY",
+    authDomain: "nakseong-ib.firebaseapp.com",
+    projectId: "nakseong-ib",
+    storageBucket: "nakseong-ib.firebasestorage.app",
+    messagingSenderId: "963084512302",
+    appId: "1:963084512302:web:95d360cfa0172d641dc3bf"
   },
 
   // ③ 학교 구분 이름(영문·숫자). 저장 위치가 schools/<이름>/units 가 됩니다.
