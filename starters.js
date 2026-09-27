@@ -5,11 +5,24 @@
 (function () {
   var P = window.PYP, esc = window.esc;
   var list = window.STARTERS || [];
-  list.forEach(function (s) { s.id = "st-" + s.g + "-" + s.th; });
+  list.forEach(function (s) { s.id = "st-" + s.g + "-" + s.th + (s.v ? "-" + s.v : ""); });
+
+  // 교과전담 과목이 첫 번째 중심 교과인지 (IB 탐구단원은 담임이 주도)
+  function specialistOf(s) {
+    var sp = (window.SCHOOL && SCHOOL.specialists) || [];
+    return sp.indexOf(s.lead[0]) >= 0 ? s.lead[0] : "";
+  }
 
   var API = window.STARTER_API = {
     all: function () { return list; },
-    find: function (g, th) { return list.find(function (s) { return s.g === Number(g) && s.th === th; }) || null; },
+    specialistOf: specialistOf,
+    // 같은 학년·주제의 예시들 — 담임 교과가 중심인 안이 먼저
+    variants: function (g, th) {
+      return list.filter(function (s) { return s.g === Number(g) && s.th === th; })
+        .map(function (s, i) { return { s: s, k: (specialistOf(s) ? 1 : 0) * 10 + i }; })
+        .sort(function (a, b) { return a.k - b.k; }).map(function (x) { return x.s; });
+    },
+    find: function (g, th) { return API.variants(g, th)[0] || null; },
     byId: function (id) { return list.find(function (s) { return s.id === id; }) || null; },
     // 예시 → 새 단원 초안 (개념·중심 아이디어·LOI·성취기준·지역 맥락까지만 채우고 나머지는 선생님 몫)
     toUnit: function (s, title) {
@@ -21,9 +34,11 @@
       u.lois = s.lois.map(function (l) { return { text: l[0], concept: l[1] }; });
       u.context.local = s.local;
       u.studentAction = "(예상) " + s.act;
-      u.subjects = s.codes.map(function (c) {
+      // 계획 차시(기본 24)를 성취기준 수로 나눈 출발값 — 학년 협의로 조정
+      var total = Number(u.lessonsPlanned) || 24, n = s.codes.length, base = Math.floor(total / n), rem = total - base * n;
+      u.subjects = s.codes.map(function (c, i) {
         var r = window.STD_API && STD_API.find(s.g, c);
-        return { subject: r ? r.subject : "", hours: "", code: "[" + c + "]", content: r ? r.text : "" };
+        return { subject: r ? r.subject : "", hours: base + (i < rem ? 1 : 0), code: "[" + c + "]", content: r ? r.text : "" };
       });
       u.fromStarter = { id: s.id, ci: s.ci, title: s.title };
       return u;
@@ -40,9 +55,12 @@
       var mark = r && r.inPlan ? '<span class="pill ok" title="올해 ' + s.g + '학년 지도계획에 있음">' + r.sem + "학기</span>" : '<span class="pill" title="올해 지도계획에는 없음">계획 밖</span>';
       return '<li><b class="mono">[' + c + "]</b> " + esc(r ? r.text : "") + " " + mark + "</li>";
     }).join("");
+    var sp = specialistOf(s);
+    var badge = sp ? ' <span class="pill warn" title="교과전담 과목이 중심인 예시입니다">' + sp + " 전담 선생님과 협력</span>"
+      : s.v === "hr" ? ' <span class="pill ok" title="담임이 맡는 교과가 중심인 예시입니다">담임 주도안</span>' : "";
     return '<div class="starter" style="--tc:var(--' + (t ? t.color : "faint") + ')">' +
       '<div class="st-head"><span class="label">' + s.g + "학년 · " + themeKo(s.th) + " · 추천 " + s.sem + '</span><h4>' + esc(s.title) + "</h4>" +
-      '<span class="st-lead">중심 교과: ' + s.lead.join(", ") + "</span></div>" +
+      '<span class="st-lead">중심 교과: ' + s.lead.join(", ") + badge + "</span></div>" +
       '<p class="st-ci">“' + esc(s.ci) + '”</p>' +
       '<div class="chips">' + s.cc.map(function (c) { return '<span class="cc">' + c + "</span>"; }).join("") + "</div>" +
       (compact ? "" :
@@ -56,14 +74,22 @@
   // ───── 새 단원 시작 창: 학년·주제를 고르면 맞는 예시 1개만 보여 줌 ─────
   window.openStart = function (g, th, done) {
     var m = document.getElementById("modal");
-    var st = { g: Number(g) || 3, th: th || "" };
+    var st = { g: Number(g) || 3, th: th || "", vi: 0 };
+    // 같은 학년·주제에 예시가 둘이면(담임 주도안 · 전담 교과 중심안) 하나씩 바꿔 보기 — 한 번에 하나만 보임
+    function variantBar(vs) {
+      if (vs.length < 2) return "";
+      return '<div class="field variant"><span class="label">이 칸에는 예시가 ' + vs.length + '개 있습니다</span><div class="seg" role="radiogroup">' + vs.map(function (v, i) {
+        var sp = specialistOf(v);
+        return '<button role="radio" data-vi="' + i + '" aria-checked="' + (i === st.vi) + '">' + (sp ? sp + " 중심안" : "담임 주도안") + " · " + esc(v.title) + "</button>";
+      }).join("") + "</div></div>";
+    }
     function body() {
-      var s = st.th ? API.find(st.g, st.th) : null;
+      var vs = st.th ? API.variants(st.g, st.th) : [], s = vs[st.vi] || vs[0] || null;
       return '<div class="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="mTitle">' +
         '<h3 id="mTitle">새 탐구단원 시작하기</h3>' +
         '<div class="row"><label class="field"><span class="label">학년</span><select id="stG">' + [1, 2, 3, 4, 5, 6].map(function (n) { return '<option value="' + n + '"' + (n === st.g ? " selected" : "") + ">" + n + "학년</option>"; }).join("") + "</select></label>" +
         '<label class="field"><span class="label">초학문적 주제</span><select id="stT"><option value="">고르세요</option>' + P.themes.map(function (t) { return '<option value="' + t.id + '"' + (t.id === st.th ? " selected" : "") + ">" + t.ko + "</option>"; }).join("") + "</select></label></div>" +
-        (s ? '<p class="note">이 학년·주제의 <b>추천 예시</b>가 있습니다. 예시에서 시작하면 개념·중심 아이디어·탐구 목록·성취기준이 채워진 <b>초안</b>이 만들어집니다. 우리 반에 맞게 고쳐 쓰세요.</p>' + card(s)
+        (s ? '<p class="note">이 학년·주제의 <b>추천 예시</b>가 있습니다. 예시에서 시작하면 개념·중심 아이디어·탐구 목록·성취기준·시수가 채워진 <b>초안</b>이 만들어집니다. 우리 반에 맞게 고쳐 쓰세요.</p>' + variantBar(vs) + card(s)
           : st.th ? '<p class="note">이 학년·주제에는 추천 예시가 없습니다. 빈 단원으로 시작하세요.</p>'
             : '<p class="note">학년과 주제를 고르면, 그에 맞는 추천 예시가 여기에 하나 나옵니다.</p>') +
         '<div class="modal-actions"><button class="btn" data-m="cancel">취소</button><button class="btn" data-m="blank"' + (st.th ? "" : " disabled") + ">빈 단원으로 시작</button>" +
@@ -72,16 +98,17 @@
     function paint() { m.innerHTML = body(); }
     function close() { m.hidden = true; m.innerHTML = ""; m.removeEventListener("click", onClick); m.removeEventListener("change", onChange); document.removeEventListener("keydown", onKey, true); }
     function onChange(e) {
-      if (e.target.id === "stG") st.g = Number(e.target.value);
-      if (e.target.id === "stT") st.th = e.target.value;
+      if (e.target.id === "stG") { st.g = Number(e.target.value); st.vi = 0; }
+      if (e.target.id === "stT") { st.th = e.target.value; st.vi = 0; }
       paint();
     }
     function onClick(e) {
       if (e.target === m) return close();
+      var vb = e.target.closest("[data-vi]"); if (vb) { st.vi = Number(vb.dataset.vi); paint(); return; }
       var b = e.target.closest("[data-m]"); if (!b || b.disabled) return;
       var k = b.dataset.m; close();
       if (k === "blank") done(newUnit(st.g, st.th), "빈 단원을 만들었습니다.");
-      if (k === "starter") done(API.toUnit(API.find(st.g, st.th)), "예시에서 초안을 만들었습니다. 우리 반에 맞게 고쳐 쓰세요.");
+      if (k === "starter") { var vs = API.variants(st.g, st.th); done(API.toUnit(vs[st.vi] || vs[0]), "예시에서 초안을 만들었습니다. 우리 반에 맞게 고쳐 쓰세요."); }
     }
     function onKey(e) { if (e.key === "Escape") { e.stopPropagation(); close(); } }
     paint(); m.hidden = false;
@@ -91,13 +118,16 @@
   // ───── 참고자료: 추천 주제 지도 (6학년 × 6주제 한 장) ─────
   window.starterMap = function () {
     var h = '<div class="box" style="grid-column:1/-1"><h3>추천 주제 지도</h3>' +
-      '<p class="note" style="margin-bottom:12px">2022 개정 교육과정 성취기준과 우리 학교 연간지도계획을 바탕으로, 학년·주제마다 한 개씩 만든 <b>예시안</b>입니다. 국가 성취기준이 같아서 다른 학교와 주제가 비슷할 수 있지만, 풀어 가는 방법은 우리 학교 자원(갯벌·녹차밭·3보향 등)으로 달라집니다. 칸을 누르면 자세히 보고, 그 예시로 단원을 시작할 수 있습니다.</p>' +
+      '<p class="note" style="margin-bottom:12px">2022 개정 교육과정 성취기준과 우리 학교 연간지도계획을 바탕으로, 학년·주제마다 만든 <b>예시안</b>입니다. 국가 성취기준이 같아서 다른 학교와 주제가 비슷할 수 있지만, 풀어 가는 방법은 우리 학교 자원(갯벌·녹차밭·3보향 등)으로 달라집니다. 칸을 누르면 자세히 보고, 그 예시로 단원을 시작할 수 있습니다.</p>' +
+      ((window.SCHOOL && SCHOOL.specialists && SCHOOL.specialists.length) ? '<p class="note" style="margin-bottom:12px">IB 탐구단원은 <b>담임이 주도</b>합니다. 교과전담 과목(' + SCHOOL.specialists.join("·") + ')이 중심인 칸에는 <b>담임 주도안</b>을 먼저 보여 주고, 원래 안은 칸 아래 ‘↔’로 볼 수 있습니다. 전담 과목이 바뀌면 순서도 저절로 바뀝니다.</p>' : "") +
       '<div class="poi-wrap"><div class="stmap"><div></div>' + P.themes.map(function (t) { return '<div class="th" style="--tc:var(--' + t.color + ')"><b>' + t.ko + "</b></div>"; }).join("");
     [1, 2, 3, 4, 5, 6].forEach(function (g) {
       h += '<div class="gh">' + g + "학년</div>";
       P.themes.forEach(function (t) {
-        var s = API.find(g, t.id);
-        h += s ? '<button class="stcell" data-act="starterView" data-id="' + s.id + '" style="--tc:var(--' + t.color + ')"><b>' + esc(s.title) + "</b><small>" + s.sem + " · " + s.lead.slice(0, 2).join("·") + "</small></button>" : "<div></div>";
+        var vs = API.variants(g, t.id), s = vs[0];
+        if (!s) { h += "<div></div>"; return; }
+        h += '<div class="stcell-wrap"><button class="stcell" data-act="starterView" data-id="' + s.id + '" style="--tc:var(--' + t.color + ')"><b>' + esc(s.title) + "</b><small>" + s.sem + " · " + s.lead.slice(0, 2).join("·") + (s.v === "hr" ? " · 담임 주도" : "") + "</small></button>" +
+          vs.slice(1).map(function (o) { var sp = specialistOf(o); return '<button class="st-alt" data-act="starterView" data-id="' + o.id + '">↔ ' + (sp ? sp + " 중심안" : "다른 안") + ": " + esc(o.title) + "</button>"; }).join("") + "</div>";
       });
     });
     return h + "</div></div></div>";

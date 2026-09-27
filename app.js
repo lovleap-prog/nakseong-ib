@@ -83,7 +83,7 @@
     return '<div class="welcome"><div><h3>처음 오셨나요? 이렇게 시작해 보세요</h3><ol>' +
       "<li><b>예시 단원 둘러보기</b> — 3학년 ‘이야기에 담긴 우리의 목소리’가 끝까지 채워진 모습입니다.</li>" +
       "<li><b>빈 칸의 ＋ 단원</b>을 누르면, 그 학년·주제에 맞는 <b>추천 예시</b>가 하나 나옵니다. 예시에서 시작하면 초안이 만들어집니다.</li>" +
-      "<li>단원 화면의 <b>1~6단계</b>를 차례로 채우고, 오른쪽 <b>꼭 할 일</b>이 모두 초록색이 되면 기본 설계가 끝납니다.</li></ol>" +
+      "<li>단원 화면의 <b>1~5단계</b>를 차례로 채우고, 오른쪽 <b>꼭 할 일</b>이 모두 초록색이 되면 설계가 끝납니다. <b>실천·성찰</b>은 단원을 운영하면서 채웁니다.</li></ol>" +
       '<div class="chips"><button class="btn primary" data-open="example-hweo-3">예시 단원 보기</button><button class="btn" data-act="goStarters">추천 주제 지도</button><button class="btn" data-act="newUnit">새 단원 만들기</button></div></div>' +
       '<button class="btn ghost close" data-act="welcomeOff" aria-label="안내 닫기">✕</button></div>';
   }
@@ -236,7 +236,8 @@
       '<div class="box"><h3>특색 교육 · 학교자율시간</h3><ul class="plain">' + S.features.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul><dl style=\"margin-top:10px\">" +
       S.selfTime.map(function (g) { return "<dt>" + g[0] + "</dt><dd>" + g[1] + "</dd>"; }).join("") + "</dl></div>" +
       '<div class="box"><h3>단원 시기와 엮기 좋은 학교 행사</h3><dl>' + S.events.map(function (g) { return "<dt>" + g[0] + "</dt><dd>" + g[1] + "</dd>"; }).join("") + "</dl></div>" +
-      '<div class="box"><h3>학교가 보완하려는 점 (실태 분석)</h3><ul class="plain">' + S.needs.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + '</ul><p class="note" style="margin-top:8px">탐구단원의 실천·총괄 과제를 이 방향과 연결하면 학교 교육과정 안에서 자연스럽게 자리 잡습니다.</p></div></div>';
+      '<div class="box"><h3>학교가 보완하려는 점 (실태 분석)</h3><ul class="plain">' + S.needs.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + '</ul><p class="note" style="margin-top:8px">탐구단원의 실천·총괄 과제를 이 방향과 연결하면 학교 교육과정 안에서 자연스럽게 자리 잡습니다.</p></div>' +
+      (S.specialists ? '<div class="box"><h3>교과전담 과목</h3><p><b>' + S.specialists.map(esc).join(", ") + '</b></p><p class="note">IB 탐구단원은 담임이 주도합니다. 추천 예시는 이 과목이 중심이 아닌 <b>담임 주도안</b>을 먼저 보여 주고, 전담 교과는 협력으로 엮습니다. 전담 과목이 바뀌면 <code>school.js</code>의 <code>specialists</code>만 고치면 순서가 저절로 바뀝니다.</p></div>' : "") + "</div>";
   }
   function refWords() {
     return '<div class="ref"><div class="box" style="grid-column:1/-1"><p class="note" style="margin-bottom:10px">화면 곳곳의 <span class="hlp" aria-hidden="true">?</span> 단추를 눌러도 같은 설명이 나옵니다.</p><dl>' +
@@ -328,7 +329,7 @@
   }
 
   function scaffold(u) {
-    var n = Math.max(6, Number(u.lessonsPlanned) || 17);
+    var n = Math.max(14, Number(u.lessonsPlanned) || 24); // LOI마다 최소 한 바퀴(3차시)씩 돌려면 14차시 이상
     if (!u.lessons.length) return buildScaffold(u, n);
     dialog({ title: "차시표를 새로 채울까요?", danger: true, ok: "지우고 새로 채우기",
       body: "지금 차시표 <b>" + u.lessons.length + "개 차시</b>에 적은 내용이 모두 지워지고, 계획 차시 <b>" + n + "차시</b> 뼈대로 바뀝니다. 직후 알림에서 되돌릴 수 있습니다." })
@@ -338,15 +339,24 @@
         toast("차시표를 새로 채웠습니다.", "되돌리기", function () { S.save(before, true); render(); });
       });
   }
+  // 탐구 열기 → LOI마다 작은 순환(조사 → 정리 → 공유·일반화) → 전이·마무리 → 성찰
+  //  24차시 예: 열기 3 · LOI 5+5+5(조사2·정리2·일반화1) · 마무리 5 · 성찰 1
   function buildScaffold(u, n) {
-    var stages = P.models[u.model].map(function (s) { return s[0]; });
-    var body = n - 3, a = Math.round(body * 0.3), b = Math.round(body * 0.3), c = body - a - b, rows = [];
-    function push(flow, stage) { rows.push({ flow: flow, stage: stage, method: "", note: "", reflection: "", studentRefl: "", studentWork: "" }); }
-    push("탐구열기", stages[0]); push("탐구열기", stages[1]);
-    for (var i = 0; i < a; i++) push("LOI1", stages[2]);
-    for (i = 0; i < b; i++) push("LOI2", stages[3]);
-    for (i = 0; i < c; i++) push("LOI3", i < Math.ceil(c / 2) ? stages[4] : stages[5]);
-    push("탐구 마무리", stages[6]);
+    var c = P.cycles[u.model] || P.cycles["개념 기반 탐구"], rows = [];
+    function push(flow, stage) { rows.push({ flow: flow, stage: stage, ilp: "", method: "", note: "", reflection: "", studentRefl: "", studentWork: "" }); }
+    var open = n >= 22 ? 3 : 2, close = Math.max(2, Math.round(n * 0.2)), loops = n - open - close - 1;
+    if (loops < 9) { close = 2; loops = Math.max(9, n - open - close - 1); } // 짧은 단원도 LOI마다 한 바퀴(3차시)는 돌게
+    for (var i = 0; i < open; i++) push("탐구열기", i < open - 1 ? c.open[0] : c.open[c.open.length - 1]);
+    var per = [0, 0, 0]; for (i = 0; i < loops; i++) per[i % 3]++;
+    ["LOI1", "LOI2", "LOI3"].forEach(function (f, k) {
+      var m = per[k], org = m >= 5 ? 2 : 1, inv = Math.max(1, m - org - 1);
+      for (var j = 0; j < inv; j++) push(f, c.loop[0]);
+      if (c.deeper && k === 2 && inv > 1) rows[rows.length - 1].stage = c.deeper; // 머독 모형: 마지막 LOI에서 더 나아가기
+      for (j = 0; j < org; j++) push(f, c.loop[1]);
+      push(f, c.loop[2]);
+    });
+    for (i = 0; i < close; i++) push("탐구 마무리", c.close[0]);
+    push("탐구 마무리", c.reflect);
     u.lessons = rows; S.save(u); render();
   }
 
@@ -467,7 +477,26 @@
     },
     addLesson: function (u) { u.lessons.push({ flow: "LOI1", stage: "", ilp: "", method: "", note: "", reflection: "", studentRefl: "", studentWork: "" }); },
     delLesson: function (u, el) { return removeRow(u, "lessons", Number(el.dataset.i), (Number(el.dataset.i) + 1) + "차시"); },
-    moveLesson: function (u, el) { var i = Number(el.dataset.i); if (i === 0) return false; var x = u.lessons.splice(i, 1)[0]; u.lessons.splice(i - 1, 0, x); },
+    moveLesson: function (u, el) {
+      var i = Number(el.dataset.i), j = el.dataset.dir === "down" ? i + 1 : i - 1;
+      if (j < 0 || j >= u.lessons.length) return false;
+      var x = u.lessons.splice(i, 1)[0]; u.lessons.splice(j, 0, x);
+    },
+    // 흐름 머리줄의 ＋: 그 LOI 순환에서 빠진 단계부터 채우고, 알맞은 자리에 끼워 넣음
+    addLessonIn: function (u, el) {
+      var f = el.dataset.f, c = P.cycles[u.model] || P.cycles["개념 기반 탐구"], ORDER = { open: 0, inv: 1, deeper: 1.5, org: 2, gen: 3, close: 4, reflect: 5 };
+      var mine = []; u.lessons.forEach(function (l, i) { if (l.flow === f) mine.push({ i: i, r: stageRole(u.model, l.stage) }); });
+      var stage, role;
+      if (/^LOI/.test(f)) {
+        var have = mine.map(function (x) { return x.r; });
+        role = ["inv", "org", "gen"].filter(function (r) { return have.indexOf(r) < 0; })[0] || "inv";
+        stage = c.loop[["inv", "org", "gen"].indexOf(role)];
+      } else { role = f === "탐구열기" ? "open" : "close"; stage = role === "open" ? c.open[0] : c.close[0]; }
+      var at = -1; mine.forEach(function (x) { if ((ORDER[x.r] == null ? 9 : ORDER[x.r]) <= ORDER[role]) at = x.i; });
+      if (at < 0) at = mine.length ? mine[0].i - 1 : u.lessons.length - 1;
+      u.lessons.splice(at + 1, 0, { flow: f, stage: stage, ilp: "", method: "", note: "", reflection: "", studentRefl: "", studentWork: "" });
+      toast((at + 2) + "차시에 ‘" + stage + "’ 차시를 넣었습니다.");
+    },
     scaffold: function (u) { scaffold(u); return false; },
     xlsxUnit: function (u) { Exporter.xlsx([u], true); return false; },
     xlsxAll: function () { Exporter.xlsx(units()); },

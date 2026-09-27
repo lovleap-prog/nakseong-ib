@@ -38,39 +38,93 @@
       }).join("") : '<tr><td colspan="7" style="color:var(--faint);padding:14px">‘＋ 개념적 이해 기준’부터 눌러 보세요.</td></tr>') + "</tbody></table></div></section>";
   };
 
+  // LOI 하나 안의 작은 순환: 조사 → 정리 → 공유·일반화가 각각 몇 차시인지
+  function loopOf(u, flow) {
+    var roles = u.lessons.filter(function (l) { return l.flow === flow; }).map(function (l) { return stageRole(u.model, l.stage); });
+    return [["inv", "조사"], ["org", "정리"], ["gen", "공유·일반화"]].map(function (r) {
+      return { r: r[0], label: r[1], n: roles.filter(function (x) { return x === r[0]; }).length };
+    });
+  }
+  function cycHtml(u, flow) {
+    return '<span class="cyc">' + loopOf(u, flow).map(function (x) {
+      return '<span data-on="' + (x.n > 0) + '" title="' + (x.n ? x.n + "차시" : "아직 없음") + '">' + x.label + (x.n ? ' <i class="mono">' + x.n + "</i>" : "") + "</span>";
+    }).join('<span class="arr">→</span>') + "</span>";
+  }
+
+  // 단원 전체 흐름 지도: 탐구 열기 → LOI 순환 ×3 → 전이·마무리 (성찰은 어디서나)
+  function flowMap(u) {
+    var c = P.cycles[u.model] || P.cycles["개념 기반 탐구"];
+    return '<div class="flowmap">' +
+      '<div class="fm-end"><b>탐구 열기</b><small>' + c.open.join(" · ") + "</small></div>" +
+      ["LOI1", "LOI2", "LOI3"].map(function (f, i) {
+        var l = u.lois[i] || {};
+        return '<div class="fm-loi"><b>LOI ' + (i + 1) + (l.concept ? ' <span class="cc">' + esc(l.concept) + "</span>" : "") + "</b>" +
+          (l.text ? "<small>" + esc(l.text) + "</small>" : "") + cycHtml(u, f) + "</div>";
+      }).join("") +
+      '<div class="fm-end"><b>전이 · 마무리</b><small>총괄 과제 · 실천</small></div>' +
+      '<p class="fm-note">↻ 성찰은 어느 단계에서든 일어납니다. 각 LOI 안에서 <b>조사 → 정리 → 공유·일반화</b>가 한 바퀴 돌고, 단원 전체로 한 번 더 큰 바퀴가 돕니다.' + H.help("작은 탐구 순환") + "</p></div>";
+  }
+
+  // 흐름(탐구열기·LOI·마무리)이 바뀌는 자리에 머리줄
+  function blockHead(u, flow, cols) {
+    var i = ["LOI1", "LOI2", "LOI3"].indexOf(flow), l = i >= 0 ? (u.lois[i] || {}) : null;
+    return '<tr class="blk"><td colspan="' + cols + '"><div class="blk-in"><b>' + (i >= 0 ? "LOI " + (i + 1) : esc(flow || "흐름 미정")) + "</b>" +
+      (l && l.text ? '<span class="blk-loi">' + esc(l.text) + "</span>" : "") + (l && l.concept ? '<span class="cc">' + esc(l.concept) + "</span>" : "") +
+      (i >= 0 ? cycHtml(u, flow) : "") +
+      (flow ? '<button class="btn ghost" data-act="addLessonIn" data-f="' + esc(flow) + '">＋ 이 흐름에 차시</button>' : "") + "</div></td></tr>";
+  }
+
+  function routineLib() {
+    var groups = [["open", "탐구 열기"], ["inv", "조사"], ["org", "정리"], ["gen", "공유·일반화"], ["reflect", "성찰"]];
+    return '<p class="note">큰 종이와 붙임쪽지로 생각을 꺼내고(열기·조사) → 묶고(정리) → 나누는(공유·일반화) 활동입니다. ★는 하버드 Project Zero의 생각 루틴입니다.' + H.help("생각 루틴") + "</p>" +
+      groups.map(function (g) {
+        return '<div class="rt-group"><span class="label">' + g[1] + '</span><div class="routines">' + P.routines.filter(function (x) { return x.r === g[0]; }).map(function (x) {
+          return '<div class="routine" data-r="' + x.r + '"><b>' + (x.pz ? "★ " : "") + esc(x.name) + '</b><span class="en">' + esc(x.en) + "</span><p>" + esc(x.how) + "</p></div>";
+        }).join("") + "</div></div>";
+      }).join("");
+  }
+
   R.lessons = function (u) {
-    var stages = P.models[u.model];
+    var stages = P.models[u.model], cols = UI.guided ? 6 : 10;
+    // 흐름 이름은 머리줄에 있으므로 칸에서는 짧게 (저장 값은 그대로)
+    var FLOW_SHORT = P.flows.map(function (f) { return [f, f === "탐구열기" ? "열기" : f === "탐구 마무리" ? "마무리" : f.replace("LOI", "LOI ")]; });
+    var rows = "", prev = null;
+    u.lessons.forEach(function (l, i) {
+      if (l.flow !== prev) { rows += blockHead(u, l.flow, cols); prev = l.flow; }
+      var p = "lessons." + i + ".", role = stageRole(u.model, l.stage);
+      rows += '<tr><td class="mono" style="padding-top:12px">' + (i + 1) + "</td><td>" + H.sel(p + "flow", l.flow, FLOW_SHORT) + '</td><td class="stg" data-r="' + role + '">' + H.sel(p + "stage", l.stage, stages.map(function (s) { return s[0]; }), "—") +
+        "</td><td>" + H.sel(p + "ilp", l.ilp, P.ilp.map(function (x) { return x[0]; }), "—") + "</td><td>" + H.ta(p + "method", l.method, P.roleHint[role] || "", 2) + "</td>" +
+        (UI.guided ? "" : "<td>" + H.ta(p + "note", l.note, "", 2) + "</td><td>" + H.ta(p + "reflection", l.reflection, "의도와 달랐던 점, 아이들 반응", 2) + "</td><td>" + H.ta(p + "studentRefl", l.studentRefl, "", 2) + "</td><td>" + H.ta(p + "studentWork", l.studentWork, "", 2) + "</td>") +
+        '<td class="rowbtn"><button class="btn ghost" data-act="moveLesson" data-i="' + i + '" aria-label="위로">↑</button><button class="btn ghost" data-act="moveLesson" data-dir="down" data-i="' + i + '" aria-label="아래로">↓</button><button class="btn ghost" data-act="delLesson" data-i="' + i + '" aria-label="삭제">✕</button></td></tr>';
+    });
+    var n = Number(u.lessonsPlanned) || 0;
     return H.guide("lessons") +
       '<section class="sec">' + H.secH("차시 운영 계획", "Lesson sequence",
-        H.prompt("lessons") + H.ai("lessons", "AI 제안") + '<button class="btn" data-act="scaffold">모형 흐름으로 채우기</button><button class="btn" data-act="addLesson">＋ 차시</button>') +
-      '<div class="row">' + H.field("탐구 모형", H.sel("model", u.model, Object.keys(P.models)), "모형을 바꾸면 각 차시의 탐구단계가 같은 순서의 단계로 바뀝니다. 두 모형 모두 IB 공식 모형이 아닌 참고 모형입니다.") +
-      '<div class="field"><span class="label">단계 분포</span><div class="chips">' + stages.map(function (s) {
-        var n = u.lessons.filter(function (l) { return l.stage === s[0]; }).length;
-        return '<span class="pill ' + (n ? "" : "warn") + '" title="' + esc(s[2]) + '">' + s[0] + ' <b class="mono">' + n + "</b></span>";
+        H.prompt("lessons") + H.ai("lessons", "AI 제안") + '<button class="btn" data-act="scaffold">LOI 순환으로 채우기</button><button class="btn" data-act="addLesson">＋ 차시</button>') +
+      flowMap(u) +
+      '<div class="row">' + H.field("탐구 모형", H.sel("model", u.model, Object.keys(P.models)), "두 모형 모두 IB 공식 모형이 아닌 참고 모형이며, 한 번 도는 순서가 아니라 되풀이되는 순환입니다.") +
+      '<div class="field"><span class="label">단계 분포 · 차시표 ' + u.lessons.length + " / 계획 " + n + '차시</span><div class="chips">' + stages.map(function (s) {
+        var k = u.lessons.filter(function (l) { return l.stage === s[0]; }).length;
+        return '<span class="pill ' + (k ? "" : "warn") + '" title="' + esc(s[2]) + '">' + s[0] + ' <b class="mono">' + k + "</b></span>";
       }).join("") + "</div></div></div>" +
-      (UI.guided ? '<p class="note">★ 성찰은 마지막 한 차시가 아니라 모든 단계에서 일어납니다. ‘전이하기’(일반화를 새 상황에 적용)와 학생 ‘실천’은 서로 다른 것이며, 실천은 실천·성찰 탭에서 계획합니다.</p>' : "") +
-      '<div class="tbl-wrap"><table style="min-width:' + (UI.guided ? 860 : 1240) + 'px"><thead><tr><th style="width:44px">차시</th><th style="width:118px">탐구의 흐름</th><th style="width:140px">탐구단계</th><th style="width:130px" title="2025 탐구 학습 발달 단계">탐구 기능</th><th>교수학습방법 및 전략</th>' +
-      (UI.guided ? "" : '<th style="width:170px">비고</th><th style="width:190px">차시별 성찰</th><th style="width:150px">학생 성찰</th><th style="width:150px">학생 활동 결과</th>') + '<th style="width:78px"></th></tr></thead><tbody>' +
-      (u.lessons.length ? u.lessons.map(function (l, i) {
-        var p = "lessons." + i + ".";
-        return '<tr><td class="mono" style="padding-top:12px">' + (i + 1) + "</td><td>" + H.sel(p + "flow", l.flow, P.flows) + "</td><td>" + H.sel(p + "stage", l.stage, stages.map(function (s) { return s[0]; }), "—") +
-          "</td><td>" + H.sel(p + "ilp", l.ilp, P.ilp.map(function (x) { return x[0]; }), "—") + "</td><td>" + H.ta(p + "method", l.method, "", 2) + "</td>" +
-          (UI.guided ? "" : "<td>" + H.ta(p + "note", l.note, "", 2) + "</td><td>" + H.ta(p + "reflection", l.reflection, "의도와 달랐던 점, 아이들 반응", 2) + "</td><td>" + H.ta(p + "studentRefl", l.studentRefl, "", 2) + "</td><td>" + H.ta(p + "studentWork", l.studentWork, "", 2) + "</td>") +
-          '<td style="white-space:nowrap"><button class="btn ghost" data-act="moveLesson" data-i="' + i + '" aria-label="위로">↑</button><button class="btn ghost" data-act="delLesson" data-i="' + i + '" aria-label="삭제">✕</button></td></tr>';
-      }).join("") : '<tr><td colspan="10" style="color:var(--faint);padding:14px">‘모형 흐름으로 채우기’를 누르면 계획 차시 수에 맞춰 뼈대가 만들어집니다.</td></tr>') +
+      (UI.guided ? '<p class="note">★ ‘전이하기’(일반화를 새 상황에 적용)와 학생 ‘실천’은 서로 다른 것입니다. 실천은 학생이 스스로 시작하며, 운영하면서 실천·성찰 탭에 기록합니다.</p>' : "") +
+      '<div class="tbl-wrap"><table class="lessons" style="min-width:' + (UI.guided ? 900 : 1280) + 'px"><thead><tr><th style="width:44px">차시</th><th style="width:96px">흐름</th><th style="width:172px">탐구단계</th><th style="width:164px" title="2025 탐구 학습 발달 단계">탐구 기능</th><th>교수학습방법 및 전략</th>' +
+      (UI.guided ? "" : '<th style="width:170px">비고</th><th style="width:190px">차시별 성찰</th><th style="width:150px">학생 성찰</th><th style="width:150px">학생 활동 결과</th>') + '<th style="width:100px"></th></tr></thead><tbody>' +
+      (u.lessons.length ? rows : '<tr><td colspan="' + cols + '" style="color:var(--faint);padding:14px">‘LOI 순환으로 채우기’를 누르면 계획 차시 수에 맞춰 탐구 열기 → LOI마다 조사·정리·공유·일반화 → 전이·마무리 뼈대가 만들어집니다.</td></tr>') +
       "</tbody></table></div>" + H.aiOut("lessons") +
-      (UI.guided ? '<p class="note">차시별 성찰·학생 성찰·결과물 칸은 단원을 운영하면서 채웁니다. 왼쪽 아래 ‘전체 보기’로 바꾸면 나타납니다.</p>' : "") + "</section>";
+      (UI.guided ? '<p class="note">차시별 성찰·학생 성찰·결과물 칸은 단원을 운영하면서 채웁니다. 왼쪽 아래 ‘전체 보기’로 바꾸면 나타납니다.</p>' : "") + "</section>" +
+      '<section class="sec">' + H.secH("붙임쪽지 활동 도구", "Thinking routines") + H.more("routines", "단계별 활동 예시 14가지 보기", routineLib()) + "</section>";
   };
 
   R.reflect = function (u) {
     return H.guide("reflect") +
       '<section class="sec">' + H.secH("학생 실천", "Student-initiated action", H.prompt("action") + H.ai("action", "AI 제안"), "실천") +
-      H.field("예상되는 실천 유형", H.chips(P.actionTypes.map(function (a) { return { v: a[0], label: a[0] + "<small>" + a[1] + "</small>", d: a[2] }; }), "actionTypes", u.actionTypes), "학생이 배움에서 스스로 시작할 법한 실천을 미리 떠올려 봅니다.", "req") +
-      H.field("교사는 학생 실천을 어떻게 지원할까?", H.ta("action", u.action, "시간·공간·자료·연결할 사람 등 실천의 기회를 여는 방법", 3), "", "req") +
+      H.field("예상되는 실천 유형", H.chips(P.actionTypes.map(function (a) { return { v: a[0], label: a[0] + "<small>" + a[1] + "</small>", d: a[2] }; }), "actionTypes", u.actionTypes), "학생이 배움에서 스스로 시작할 법한 실천을 미리 떠올려 봅니다.", "opt") +
+      H.field("교사는 학생 실천을 어떻게 지원할까?", H.ta("action", u.action, "시간·공간·자료·연결할 사람 등 실천의 기회를 여는 방법", 3), "", "opt") +
       H.more("studentAction", "학생이 실제로 제안한 실천 기록하기", H.field("", H.ta("studentAction", u.studentAction, "운영 중 학생들이 제안하거나 실행한 실천", 3))) + H.aiOut("action") + "</section>" +
 
       '<section class="sec">' + H.secH("교사 성찰", "Before · During · After") +
-      '<div class="row">' + H.field("운영 전", H.ta("reflect.before", u.reflect.before, "예상되는 어려움, 학생 실태, 협의한 결정", 5), "", "req") +
+      '<div class="row">' + H.field("운영 전", H.ta("reflect.before", u.reflect.before, "예상되는 어려움, 학생 실태, 협의한 결정", 5), "", "opt") +
       H.field("운영 중", H.ta("reflect.during", u.reflect.during, "계획과 달라진 점, 학생 질문으로 바뀐 방향", 5)) +
       H.field("운영 후", H.ta("reflect.teacher", u.reflect.teacher, "중심 아이디어 이해가 어떻게 드러났나? 다음에 바꿀 점은?", 5)) + "</div></section>" +
 
@@ -116,8 +170,12 @@
 
   window.renderUnit = function (u, tab, all) {
     var t = themeOf(u.theme), checks = checkUnit(u, all), sc = scoreOf(checks);
-    var counts = {}; checks.forEach(function (c) { if (c.level !== "ok" && (!UI.guided || c.core)) counts[c.tab] = (counts[c.tab] || 0) + 1; });
+    var counts = {}; checks.forEach(function (c) { if (c.level !== "ok" && c.phase !== "run" && (!UI.guided || c.core)) counts[c.tab] = (counts[c.tab] || 0) + 1; });
     var idx = TABS.findIndex(function (x) { return x[0] === tab; }), next = TABS[idx + 1];
+    // 설계는 차시 운영에서 끝남 — 실천·성찰은 운영하면서
+    var nextBar = !UI.guided || !next ? "" : tab === "lessons"
+      ? '<div class="nextbar"><span class="note" style="margin:0 auto 0 0">여기까지가 <b>단원 설계</b>입니다. 실천·성찰은 단원을 운영하면서 채웁니다.</span><button class="btn" data-tab="reflect">실천 · 성찰 미리 보기 →</button></div>'
+      : '<div class="nextbar"><button class="btn primary" data-tab="' + next[0] + '">다음 단계: ' + next[1] + " →</button></div>";
     return '<div class="topbar"><button class="btn menu-btn" data-act="menu">☰</button><div><div class="label" style="color:' + (t ? "var(--" + t.color + ")" : "var(--muted)") + '">' +
       u.grade + "학년 · " + (t ? t.ko : "주제 미정") + (u.semester ? " · " + u.semester : "") + (u.example ? ' <span class="pill ex">예시</span>' : "") +
       (u.fromStarter ? ' <button class="lnk" data-act="starterPeek">추천 예시에서 시작함 · 비교하기</button>' : "") + lastEdit(u) +
@@ -131,11 +189,12 @@
       '<button class="danger" data-act="delUnit"><b>단원 삭제</b><small>삭제 전에 한 번 더 묻습니다</small></button>' +
       "</div></details></div></div>" +
       '<div class="work"><div><div class="tabs" role="tablist">' + TABS.map(function (x, i) {
-        return '<button role="tab" data-tab="' + x[0] + '" aria-selected="' + (x[0] === tab) + '">' + (UI.guided && i < 6 ? '<span class="step">' + (i + 1) + "</span>" : "") + x[1] + (counts[x[0]] ? '<span class="n">' + counts[x[0]] + "</span>" : "") + "</button>";
+        return '<button role="tab" data-tab="' + x[0] + '" aria-selected="' + (x[0] === tab) + '">' + (UI.guided && i < 5 ? '<span class="step">' + (i + 1) + "</span>" : "") + x[1] +
+          (x[0] === "reflect" ? '<span class="run" title="단원을 운영하면서 채웁니다">운영</span>' : "") + (counts[x[0]] ? '<span class="n">' + counts[x[0]] + "</span>" : "") + "</button>";
       }).join("") + '</div><div id="tabBody">' +
       (RESET[tab] ? '<div class="tabbar"><span>' + RESET[tab].note + '</span><button class="btn" data-act="resetTab">이 단계 초기화</button></div>' : "") +
       R[tab](u) +
-      (next && UI.guided ? '<div class="nextbar"><button class="btn primary" data-tab="' + next[0] + '">다음 단계: ' + next[1] + " →</button></div>" : "") +
+      nextBar +
       "</div></div>" + '<aside class="panel" id="checkPanel">' + renderChecks(checks, sc) + "</aside></div>";
   };
 
@@ -143,15 +202,18 @@
     function li(c) {
       return '<li data-l="' + c.level + '" data-goto="' + c.tab + '"><span class="ic">' + (c.level === "ok" ? "✓" : c.level === "warn" ? "!" : "·") + "</span><span>" + c.text + (c.tip ? "<small>" + esc(c.tip) + "</small>" : "") + "</span></li>";
     }
+    var plan = checks.filter(function (c) { return c.phase !== "run"; }), run = checks.filter(function (c) { return c.phase === "run"; });
+    var runBox = run.length ? '<details class="more run-box"><summary>운영하면서 채울 것 <span class="need opt">' + run.filter(function (c) { return c.level !== "ok"; }).length + "</span></summary>" +
+      '<p class="note" style="margin:6px 0">설계 점수에 들어가지 않습니다. 단원을 운영하는 동안이나 마친 뒤에 채우세요.</p><ul class="checks">' + run.map(li).join("") + "</ul></details>" : "";
     if (UI.guided) {
-      var core = checks.filter(function (c) { return c.core; }), todo = core.filter(function (c) { return c.level !== "ok"; });
-      var done = core.length - todo.length, extra = checks.filter(function (c) { return !c.core && c.level !== "ok"; });
-      return '<div class="label">꼭 할 일</div><div class="score"><b>' + done + '</b><span style="color:var(--muted)">/ ' + core.length + ' 완료</span></div><div class="meter"><i style="width:' + Math.round(done / core.length * 100) + '%"></i></div>' +
+      var core = plan.filter(function (c) { return c.core; }), todo = core.filter(function (c) { return c.level !== "ok"; });
+      var done = core.length - todo.length, extra = plan.filter(function (c) { return !c.core && c.level !== "ok"; });
+      return '<div class="label">꼭 할 일 · 설계</div><div class="score"><b>' + done + '</b><span style="color:var(--muted)">/ ' + core.length + ' 완료</span></div><div class="meter"><i style="width:' + Math.round(done / core.length * 100) + '%"></i></div>' +
         (todo.length ? '<ul class="checks">' + todo.slice(0, 4).map(li).join("") + "</ul>" + (todo.length > 4 ? '<p class="note">그 밖에 ' + (todo.length - 4) + "개가 남았습니다. 한 단계씩 채우면 됩니다.</p>" : "")
           : '<p class="note" style="color:var(--ok)">기본 설계를 모두 마쳤습니다. 아래 항목으로 단원을 더 단단하게 만들어 보세요.</p>') +
-        (extra.length ? '<details class="more"><summary>더 좋게 만들기 <span class="need opt">' + extra.length + "</span></summary><ul class=\"checks\">" + extra.map(li).join("") + "</ul></details>" : "");
+        (extra.length ? '<details class="more"><summary>더 좋게 만들기 <span class="need opt">' + extra.length + "</span></summary><ul class=\"checks\">" + extra.map(li).join("") + "</ul></details>" : "") + runBox;
     }
     return '<div class="label">설계 점검</div><div class="score"><b>' + sc + '</b><span style="color:var(--muted)">/ 100</span></div><div class="meter"><i style="width:' + sc + '%"></i></div>' +
-      '<ul class="checks">' + checks.map(li).join("") + "</ul>";
+      '<ul class="checks">' + plan.map(li).join("") + "</ul>" + runBox;
   };
 })();

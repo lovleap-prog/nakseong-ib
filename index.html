@@ -331,6 +331,57 @@ body.pv-open .app,body.pv-open #chat{display:none}
   .loi{grid-template-columns:1fr}.loi .tag{padding:0}
   .grasps{grid-template-columns:28px 1fr}.grasps .field{grid-column:1/-1}
 }
+/* 차시표: 흐름 묶음 머리줄 · 작은 탐구 순환 · 단계 색 */
+table.lessons tr.blk td{background:var(--sunk);padding:8px 10px;border-top:2px solid var(--line-strong)}
+.blk-in{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13px}
+.blk-in>b{font-family:var(--f-display);font-size:14px}
+.blk-in .blk-loi{color:var(--muted)}
+.blk-in .btn{margin-left:auto;padding:3px 10px;font-size:12px}
+.cyc{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:11.5px}
+.cyc span[data-on]{padding:1px 8px;border-radius:999px;white-space:nowrap}
+.cyc span[data-on="true"]{background:var(--ok-soft);color:var(--ok)}
+.cyc span[data-on="false"]{background:var(--warn-soft);color:var(--warn)}
+.cyc i{font-style:normal;font-weight:600}
+.cyc .arr{color:var(--faint)}
+td.stg{border-left:3px solid transparent}
+td.stg[data-r="open"]{border-left-color:var(--htww)}
+td.stg[data-r="inv"]{border-left-color:var(--wwapt)}
+td.stg[data-r="org"]{border-left-color:var(--hweo)}
+td.stg[data-r="gen"]{border-left-color:var(--ok)}
+td.stg[data-r="close"]{border-left-color:var(--wwa)}
+td.stg[data-r="reflect"],td.stg[data-r="deeper"]{border-left-color:var(--faint)}
+table.lessons td select{font-size:13px}
+td.rowbtn{white-space:nowrap}
+td.rowbtn .btn{padding:5px 7px}
+/* 단원 전체 흐름 지도 */
+.flowmap{display:grid;grid-template-columns:minmax(96px,.7fr) repeat(3,minmax(0,1fr)) minmax(96px,.7fr);gap:8px;margin:2px 0 16px}
+.flowmap>div{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:9px 11px;font-size:12.5px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.flowmap>div>b{font-family:var(--f-display);font-size:13.5px}
+.flowmap small{color:var(--muted);font-size:11.5px;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.flowmap .fm-end{background:var(--sunk);justify-content:center}
+.fm-note{grid-column:1/-1;margin:0;font-size:12px;color:var(--muted)}
+@media (max-width:760px){.flowmap{grid-template-columns:1fr}}
+/* 운영 단계 표시 */
+.tabs .run{font-size:10.5px;padding:1px 7px;border-radius:999px;background:var(--sunk);color:var(--muted);margin-left:6px;font-weight:500}
+.checks [data-l="run"] .ic{background:var(--sunk);color:var(--faint)}
+.run-box{margin-top:10px}
+/* 붙임쪽지 활동 도구 */
+.rt-group{margin-top:12px}
+.rt-group>.label{display:block;margin-bottom:6px}
+.routines{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.routine{border:1px solid var(--line);border-left:3px solid var(--line-strong);border-radius:var(--r);padding:9px 11px;background:var(--surface);font-size:12.5px}
+.routine[data-r="open"]{border-left-color:var(--htww)}.routine[data-r="inv"]{border-left-color:var(--wwapt)}.routine[data-r="org"]{border-left-color:var(--hweo)}
+.routine[data-r="gen"]{border-left-color:var(--ok)}.routine[data-r="reflect"]{border-left-color:var(--faint)}
+.routine b{display:block;font-size:13px}
+.routine .en{color:var(--faint);font-size:11px}
+.routine p{margin:4px 0 0;color:var(--muted);line-height:1.55}
+/* 추천 예시: 담임 주도안 / 전담 교과 중심안 */
+.variant .seg{display:flex;flex-wrap:wrap;width:100%}
+.variant .seg button{flex:1 1 220px;text-align:center}
+.stcell-wrap{display:flex;flex-direction:column;gap:4px;min-width:0}
+.stcell-wrap .stcell{flex:1}
+.st-alt{all:unset;cursor:pointer;font-size:11px;color:var(--muted);text-decoration:underline;text-underline-offset:2px;padding:0 4px;line-height:1.4}
+.st-alt:hover{color:var(--ink)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 @media print{
   .side,.tabs,.panel,.actions,.menu-btn,#chat,.toast{display:none!important}.app{display:block}.work{display:block}
@@ -354,22 +405,23 @@ body.pv-open .app,body.pv-open #chat{display:none}
 <input type="file" id="importFile" accept=".json" hidden>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="data.js?v=2"></script>
-<script src="school.js?v=2"></script>
-<script src="standards.js?v=2"></script>
-<script src="starters_a.js?v=2"></script>
-<script src="starters_b.js?v=2"></script>
-<script src="firebase-config.js?v=2"></script>
-<script src="firebase.js?v=2"></script>
-<script src="store.js?v=2"></script>
-<script src="unit.js?v=2"></script>
-<script src="unit2.js?v=2"></script>
-<script src="app.js?v=2"></script>
-<script src="std.js?v=2"></script>
-<script src="prompts.js?v=2"></script>
-<script src="bridge.js?v=2"></script>
-<script src="ai.js?v=2"></script>
-<script src="chat.js?v=2"></script>
-<script src="starters.js?v=2"></script>
-<script src="print.js?v=2"></script>
+<script src="data.js?v=3"></script>
+<script src="school.js?v=3"></script>
+<script src="standards.js?v=3"></script>
+<script src="starters_a.js?v=3"></script>
+<script src="starters_b.js?v=3"></script>
+<script src="starters_c.js?v=3"></script>
+<script src="firebase-config.js?v=3"></script>
+<script src="firebase.js?v=3"></script>
+<script src="store.js?v=3"></script>
+<script src="unit.js?v=3"></script>
+<script src="unit2.js?v=3"></script>
+<script src="app.js?v=3"></script>
+<script src="std.js?v=3"></script>
+<script src="prompts.js?v=3"></script>
+<script src="bridge.js?v=3"></script>
+<script src="ai.js?v=3"></script>
+<script src="chat.js?v=3"></script>
+<script src="starters.js?v=3"></script>
+<script src="print.js?v=3"></script>
 <script>if (window.APP && APP.rerender) APP.rerender();</script>

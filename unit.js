@@ -68,7 +68,7 @@
         H.field("세부 주제" + H.help("세부 주제"), H.chips(t.subs, "subs", u.subs), "이 단원이 초점을 두는 갈래를 고르세요. 여러 개 골라도 됩니다.", "req") : "") +
       '<div class="row">' + H.field("운영 학기", H.sel("semester", u.semester, ["1학기", "2학기", "1~2학기"], "고르세요"), "성취기준이 지도계획의 몇 학기에 있는지와 맞추면 좋습니다.", "req") +
       H.field("기간", H.inp("period", u.period, "2026. 4. 6. ~ 5. 8.")) +
-      H.field("계획 차시", H.inp("lessonsPlanned", u.lessonsPlanned, "", "number"), "", "req") +
+      H.field("계획 차시" + H.help("단원 길이"), H.inp("lessonsPlanned", u.lessonsPlanned, "", "number"), "권장 20~30차시 — 결과물과 실천까지 가려면 넉넉히", "req") +
       H.field("협력적 계획 팀", H.inp("team", u.team, "담임, 교과전담, 사서교사 등")) + "</div></section>" +
       '<section class="sec">' + H.secH("맥락", "Local · Global · Nature") +
       H.more("context", "지역·세계 맥락과 인간·자연 연결 적기",

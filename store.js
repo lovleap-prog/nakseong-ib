@@ -12,8 +12,16 @@
 
   S.init = function () {
     var saved = lsLoad();
-    if (saved && Object.keys(saved).length) { S.units = saved; Object.keys(saved).forEach(function (k) { migrateUnit(saved[k]); }); }
-    else { var ex = window.exampleUnit(); S.units[ex.id] = ex; }
+    var ex = window.exampleUnit();
+    if (saved && Object.keys(saved).length) {
+      S.units = saved; Object.keys(saved).forEach(function (k) { migrateUnit(saved[k]); });
+      // 손대지 않은 옛 예시 단원은 새 예시로 바꿈 (고쳐 쓴 예시는 선생님 단원이므로 그대로)
+      Object.keys(S.units).forEach(function (k) {
+        var o = S.units[k];
+        if (o.example && (o.exampleVersion || 1) < (ex.exampleVersion || 1)) { delete S.units[k]; S.units[ex.id] = ex; }
+      });
+    }
+    else S.units[ex.id] = ex;
     emit();
 
     // ① 학교 공동 저장소(파이어베이스)를 설정해 두었으면 그것을 씀
@@ -139,7 +147,8 @@ window.AI = {
 // core: 안내 모드에서 ‘꼭 할 일’로 보여 줄 항목
 window.checkUnit = function (u, all) {
   var P = window.PYP, out = [];
-  function add(level, tab, text, tip, core) { out.push({ level: level, tab: tab, text: text, tip: tip || "", core: !!core }); }
+  // phase "run": 운영하면서 채우는 항목 — 설계 점수·꼭 할 일에서 빠짐
+  function add(level, tab, text, tip, core, phase) { out.push({ level: level, tab: tab, text: text, tip: tip || "", core: !!core, phase: phase || "plan" }); }
   var filled = function (s) { return s && String(s).trim().length > 0; };
 
   add(filled(u.title) ? "ok" : "bad", "overview", "탐구단원 제목", "", true);
@@ -147,6 +156,11 @@ window.checkUnit = function (u, all) {
   add(u.subs.length ? "ok" : "warn", "overview", "세부 주제 연결", u.subs.length ? "" : "주제 설명의 세 갈래 중 이 단원이 다루는 것을 고르세요.");
   var ctx = ["local", "global", "nature"].filter(function (k) { return filled(u.context[k]); }).length;
   add(ctx >= 2 ? "ok" : "warn", "overview", "지역·세계 맥락과 인간·자연 연결", ctx + "/3 작성 — 2025 주제 설명은 인간과 자연 세계의 연결을 함께 봅니다.");
+  var lp = Number(u.lessonsPlanned) || 0, UL = P.unitLength;
+  add(lp >= UL[0] && lp <= UL[1] + 6 ? "ok" : "warn", "overview", "단원 길이 " + UL[0] + "~" + UL[1] + "차시",
+    !lp ? "계획 차시를 적어 주세요." :
+    lp < UL[0] ? lp + "차시는 짧을 수 있습니다. 학생이 자기 수준의 결과물과 실천까지 가려면 " + UL[0] + "~" + UL[1] + "차시를 권합니다." :
+    lp > UL[1] + 6 ? lp + "차시는 깁니다. 탐구 초점이 흐려지지 않는지, 한 해 여섯 단원을 운영할 수 있는지 살펴보세요." : "");
 
   var ci = (u.centralIdea || "").trim();
   if (!ci) add("bad", "concept", "중심 아이디어 진술", "", true);
@@ -200,17 +214,26 @@ window.checkUnit = function (u, all) {
   var missing = stages.filter(function (s) { return !used.has(s); });
   var nl = u.lessons.length;
   add(nl === 0 ? "bad" : missing.length ? "warn" : "ok", "lessons", "탐구 단계 모두 배치", missing.length && nl ? "빠진 단계: " + missing.join(", ") : "", true);
-  var flows = new Set(u.lessons.map(function (l) { return l.flow; }));
-  var loiNo = ["LOI1", "LOI2", "LOI3"].filter(function (f) { return !flows.has(f); });
-  if (nl) add(loiNo.length ? "warn" : "ok", "lessons", "LOI마다 차시 배정", loiNo.length ? loiNo.join(", ") + " 차시가 없습니다." : "");
+  // LOI 하나 안에서도 작은 탐구가 한 바퀴(조사 → 정리 → 공유·일반화) 도는지
+  if (nl) {
+    var gaps = [];
+    ["LOI1", "LOI2", "LOI3"].forEach(function (f) {
+      var roles = u.lessons.filter(function (l) { return l.flow === f; }).map(function (l) { return stageRole(u.model, l.stage); });
+      if (!roles.length) { gaps.push(f + " 차시 없음"); return; }
+      var miss = [["inv", "조사"], ["org", "정리"], ["gen", "공유·일반화"]].filter(function (r) { return roles.indexOf(r[0]) < 0; }).map(function (r) { return r[1]; });
+      if (miss.length) gaps.push(f + ": " + miss.join("·") + " 없음");
+    });
+    add(gaps.length ? "warn" : "ok", "lessons", "LOI마다 조사 → 정리 → 공유·일반화", gaps.length ? gaps.join(" / ") + ". LOI 하나 안에서도 작은 탐구가 한 바퀴 돌도록 배치해 보세요." : "", true);
+  }
   var ilps = new Set(u.lessons.map(function (l) { return l.ilp; }).filter(Boolean));
   if (nl) add(ilps.size >= 2 ? "ok" : "warn", "lessons", "탐구 기능 발달 단계 연결", "관찰·역할·질문·의사결정 중 두 가지 이상을 차시에 연결해 보세요.");
 
-  add(filled(u.action) || u.actionTypes.length ? "ok" : "warn", "reflect", "학생 실천 지원 계획", "", true);
+  // 실천·성찰은 운영하면서 채움 — 설계 단계의 필수가 아님
+  add(filled(u.action) || u.actionTypes.length ? "ok" : "warn", "reflect", "예상되는 학생 실천 떠올려 보기", "설계 때 꼭 채울 필요는 없습니다. 미리 떠올려 두면 기회를 열어 주기 쉽습니다.");
   var r = ["before", "during", "teacher"].filter(function (k) { return filled(u.reflect[k]); }).length;
-  add(r === 3 ? "ok" : r ? "warn" : "bad", "reflect", "교사 성찰(전·중·후)", r + "/3", true);
+  add(r === 3 ? "ok" : "run", "reflect", "교사 성찰(전·중·후)", r + "/3 · 운영하면서 채웁니다", false, "run");
   var rs = ["student", "parent"].filter(function (k) { return filled(u.reflect[k]); }).length;
-  add(rs === 2 ? "ok" : "warn", "reflect", "학생·학부모 성찰", rs + "/2");
+  add(rs === 2 ? "ok" : "run", "reflect", "학생·학부모 성찰", rs + "/2 · 운영하면서 채웁니다", false, "run");
   return out;
 };
 
@@ -226,9 +249,11 @@ window.ciTips = function (ci) {
   return tips;
 };
 
+// 설계 점수 — 운영하면서 채우는 항목(phase "run")은 빼고 셈
 window.scoreOf = function (checks) {
-  var s = 0; checks.forEach(function (c) { s += c.level === "ok" ? 1 : c.level === "warn" ? 0.5 : 0; });
-  return Math.round(s / checks.length * 100);
+  var list = checks.filter(function (c) { return c.phase !== "run"; }), s = 0;
+  list.forEach(function (c) { s += c.level === "ok" ? 1 : c.level === "warn" ? 0.5 : 0; });
+  return list.length ? Math.round(s / list.length * 100) : 0;
 };
 
 // ───────── 내보내기 ─────────
