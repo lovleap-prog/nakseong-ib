@@ -232,10 +232,10 @@
       '<p class="note" style="margin-top:8px">이 내용은 AI 프롬프트의 <b>[우리 학교 맥락]</b>에 자동으로 들어가, AI가 우리 학교에서 실제로 할 수 있는 제안을 하도록 돕습니다.</p></div>' +
       '<div class="box"><h3>교육목표</h3><dl>' + S.goals.map(function (g) { return "<dt>" + g[0] + "</dt><dd>" + g[1] + "</dd>"; }).join("") + "</dl></div>" +
       '<div class="box"><h3>IB 교육과정 추진 계획</h3><dl>' + S.ibPlan.map(function (g) { return "<dt>" + g[0] + "</dt><dd>" + g[1] + "</dd>"; }).join("") + "</dl></div>" +
-      '<div class="box"><h3>탐구단원에 연결할 지역 자원</h3><dl>' + S.local.map(function (g) { return "<dt>" + g[0] + "</dt><dd>" + g[1] + "</dd>"; }).join("") + "</dl></div>" +
+      '<div class="box wide"><h3>탐구단원에 연결할 지역 자원</h3><dl>' + S.local.map(function (g) { return "<dt>" + g[0] + "</dt><dd>" + g[1] + "</dd>"; }).join("") + "</dl></div>" +
       '<div class="box"><h3>특색 교육 · 학교자율시간</h3><ul class="plain">' + S.features.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul><dl style=\"margin-top:10px\">" +
       S.selfTime.map(function (g) { return "<dt>" + g[0] + "</dt><dd>" + g[1] + "</dd>"; }).join("") + "</dl></div>" +
-      '<div class="box"><h3>단원 시기와 엮기 좋은 학교 행사</h3><dl>' + S.events.map(function (g) { return "<dt>" + g[0] + "</dt><dd>" + g[1] + "</dd>"; }).join("") + "</dl></div>" +
+      '<div class="box wide"><h3>단원 시기와 엮기 좋은 학교 행사</h3><dl>' + S.events.map(function (g) { return "<dt>" + g[0] + "</dt><dd>" + g[1] + "</dd>"; }).join("") + "</dl></div>" +
       '<div class="box"><h3>학교가 보완하려는 점 (실태 분석)</h3><ul class="plain">' + S.needs.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + '</ul><p class="note" style="margin-top:8px">탐구단원의 실천·총괄 과제를 이 방향과 연결하면 학교 교육과정 안에서 자연스럽게 자리 잡습니다.</p></div>' +
       (S.specialists ? '<div class="box"><h3>교과전담 과목</h3><p><b>' + S.specialists.map(esc).join(", ") + '</b></p><p class="note">IB 탐구단원은 담임이 주도합니다. 추천 예시는 이 과목이 중심이 아닌 <b>담임 주도안</b>을 먼저 보여 주고, 전담 교과는 협력으로 엮습니다. 전담 과목이 바뀌면 <code>school.js</code>의 <code>specialists</code>만 고치면 순서가 저절로 바뀝니다.</p></div>' : "") + "</div>";
   }
@@ -257,8 +257,8 @@
     h += '<div class="box" style="grid-column:1/-1"><h3>초학문적 주제</h3><div class="ref" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">' + P.themes.map(function (t) {
       return '<div class="theme-band" style="--tc:var(--' + t.color + ')"><div><b>' + t.ko + "</b><p>" + t.en + "</p><p>" + t.subs.map(function (s) { return "• " + s; }).join("<br>") + "</p></div></div>";
     }).join("") + "</div></div>";
-    h += '<div class="box"><h3>명시된 개념 · 개념 질문</h3><dl>' + P.concepts.map(function (c) { return "<dt>" + c.ko + " <span class=\"mono\" style=\"color:var(--faint);font-weight:400\">" + c.en + "</span></dt><dd>" + c.q + "<br>함께 쓰는 추가 개념 예: " + c.rel + "</dd>"; }).join("") + "</dl></div>";
-    h += '<div class="box"><h3>학습 접근 방법 (ATL)</h3><dl>' + P.atl.map(function (g) { return "<dt>" + g.group + "</dt><dd>" + g.items.map(function (i) { return "<b>" + i[0] + "</b> — " + i[1]; }).join("<br>") + "</dd>"; }).join("") + "</dl></div>";
+    h += '<div class="box wide"><h3>명시된 개념 · 개념 질문</h3><dl>' + P.concepts.map(function (c) { return "<dt>" + c.ko + " <span class=\"mono\" style=\"color:var(--faint);font-weight:400\">" + c.en + "</span></dt><dd>" + c.q + "<br>함께 쓰는 추가 개념 예: " + c.rel + "</dd>"; }).join("") + "</dl></div>";
+    h += '<div class="box wide"><h3>학습 접근 방법 (ATL)</h3><dl>' + P.atl.map(function (g) { return "<dt>" + g.group + "</dt><dd>" + g.items.map(function (i) { return "<b>" + i[0] + "</b> — " + i[1]; }).join("<br>") + "</dd>"; }).join("") + "</dl></div>";
     Object.keys(P.models).forEach(function (m) {
       h += '<div class="box"><h3>' + m + ' <span class="pill">' + (m.indexOf("Murdoch") >= 0 ? "Murdoch, 2015" : "Marschall & French, 2018") + "</span></h3>" + P.models[m].map(function (s, i) { return '<div class="stage"><span class="k">' + (i === 6 ? "★" : i + 1) + "</span><span><b>" + s[0] + '</b> <span class="mono" style="color:var(--faint)">' + s[1] + "</span><br>" + s[2] + "</span></div>"; }).join("") + "</div>";
     });
@@ -273,7 +273,7 @@
     h += '<div class="box"><h3>학생 실천의 유형</h3><dl>' + P.actionTypes.map(function (x) { return "<dt>" + x[0] + "</dt><dd>" + x[2] + "</dd>"; }).join("") + '</dl><p class="note" style="margin-top:8px">실천은 학생이 배움에서 스스로 시작하며, 단원 중 언제든 나타날 수 있습니다.</p></div>';
     h += '<div class="box"><h3>PYP 평가의 흐름</h3><dl><dt>모니터링</dt><dd>배우는 동안 관찰·대화·피드백으로 살피기</dd><dt>기록</dt><dd>포트폴리오, 사진·영상, 학습일지로 배움의 증거 남기기</dd><dt>측정</dt><dd>정해진 시점에 도달 정도 확인 (총괄 과제·루브릭)</dd><dt>총괄 과제 도구</dt><dd>GRASPS(Wiggins & McTighe), RAFT(Santa, 1988) — IB 고유 도구가 아닌 참고 도구</dd></dl></div>';
     h += '<div class="box"><h3>GRASPS 수행과제</h3><dl>' + P.grasps.map(function (g) { return "<dt>" + g[1] + " " + g[2] + "</dt><dd>" + g[3] + "</dd>"; }).join("") + "</dl></div>";
-    h += '<div class="box"><h3>프로젝트 결과물의 종류</h3><dl>' + Object.keys(P.products).map(function (k) { return "<dt>" + k + "</dt><dd>" + P.products[k] + "</dd>"; }).join("") + "</dl></div>";
+    h += '<div class="box wide"><h3>프로젝트 결과물의 종류</h3><dl>' + Object.keys(P.products).map(function (k) { return "<dt>" + k + "</dt><dd>" + P.products[k] + "</dd>"; }).join("") + "</dl></div>";
     h += '<div class="box"><h3>학습자상 · 교수 접근 방법</h3><dl><dt>학습자상</dt><dd>' + P.learnerProfile.join(" · ") + "</dd><dt>교수 접근</dt><dd>" + P.teaching.join(" · ") + "</dd></dl></div>";
     return h + "</div>";
   }

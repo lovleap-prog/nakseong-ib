@@ -164,10 +164,20 @@ td input:hover,td select:hover,td textarea:hover{border-color:var(--line)}
 
 /* reference */
 .ref{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.ref .box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.ref .box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;container-type:inline-size}
 .ref .box h3{font-size:15px;margin-bottom:10px}
-.ref dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12.5px}
-.ref dt{font-weight:600}.ref dd{margin:0;color:var(--muted)}
+/* 이름 칸이 설명 칸을 밀어내지 않도록 너비 상한을 둠 (긴 이름은 줄바꿈) */
+.ref dl{margin:0;display:grid;grid-template-columns:fit-content(38%) minmax(0,1fr);gap:7px 12px;font-size:12.5px;align-items:start}
+.ref dt{font-weight:600;word-break:keep-all}
+.ref dd{margin:0;color:var(--muted);line-height:1.6;word-break:keep-all}
+/* 칸이 아주 좁으면 이름 아래에 설명을 둠 */
+@container (max-width:330px){
+  .ref dl{grid-template-columns:minmax(0,1fr);gap:1px}
+  .ref dd{margin:0 0 9px}
+  .ref dd:last-child{margin-bottom:0}
+}
+/* 설명이 긴 목록은 넓은 화면에서 두 칸 차지 */
+@media (min-width:1180px){.ref .box.wide{grid-column:span 2}}
 .stage{display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line)}
 .stage:last-child{border:none}
 .stage .k{font-family:var(--f-mono);color:var(--faint)}
@@ -414,23 +424,23 @@ td.rowbtn .btn{padding:5px 7px}
 <input type="file" id="importFile" accept=".json" hidden>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="data.js?v=4"></script>
-<script src="school.js?v=4"></script>
-<script src="standards.js?v=4"></script>
-<script src="starters_a.js?v=4"></script>
-<script src="starters_b.js?v=4"></script>
-<script src="starters_c.js?v=4"></script>
-<script src="firebase-config.js?v=4"></script>
-<script src="firebase.js?v=4"></script>
-<script src="store.js?v=4"></script>
-<script src="unit.js?v=4"></script>
-<script src="unit2.js?v=4"></script>
-<script src="app.js?v=4"></script>
-<script src="std.js?v=4"></script>
-<script src="prompts.js?v=4"></script>
-<script src="bridge.js?v=4"></script>
-<script src="ai.js?v=4"></script>
-<script src="chat.js?v=4"></script>
-<script src="starters.js?v=4"></script>
-<script src="print.js?v=4"></script>
+<script src="data.js?v=5"></script>
+<script src="school.js?v=5"></script>
+<script src="standards.js?v=5"></script>
+<script src="starters_a.js?v=5"></script>
+<script src="starters_b.js?v=5"></script>
+<script src="starters_c.js?v=5"></script>
+<script src="firebase-config.js?v=5"></script>
+<script src="firebase.js?v=5"></script>
+<script src="store.js?v=5"></script>
+<script src="unit.js?v=5"></script>
+<script src="unit2.js?v=5"></script>
+<script src="app.js?v=5"></script>
+<script src="std.js?v=5"></script>
+<script src="prompts.js?v=5"></script>
+<script src="bridge.js?v=5"></script>
+<script src="ai.js?v=5"></script>
+<script src="chat.js?v=5"></script>
+<script src="starters.js?v=5"></script>
+<script src="print.js?v=5"></script>
 <script>if (window.APP && APP.rerender) APP.rerender();</script>
