@@ -1,0 +1,41 @@
+// ─────────────────────────────────────────────────────────────
+//  파이어베이스 보안 규칙 — 등록한 선생님 계정만 읽고 쓸 수 있게 합니다
+// ─────────────────────────────────────────────────────────────
+//  쓰는 방법
+//   1) 파이어베이스 콘솔 > Firestore Database > 규칙(Rules) 탭을 엽니다.
+//   2) 아래 내용을 모두 복사해 붙여 넣습니다.
+//   3) teachers 목록의 이메일을 우리 학교 선생님들의 구글 계정으로 바꿉니다.
+//      (여기 적은 계정만 들어올 수 있습니다. 새 선생님이 오면 여기에 추가하고 게시)
+//   4) 게시(Publish)를 누릅니다.
+//
+//  ※ 이 파일은 깃허브에 올리지 않아도 됩니다. 올릴 경우 실제 이메일은 적지 말고,
+//     콘솔에서만 채워 넣으세요. (공개 저장소에 이메일이 그대로 노출됩니다)
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function teachers() {
+      return [
+        "선생님1@gmail.com",
+        "선생님2@gmail.com",
+        "선생님3@gmail.com"
+      ];
+    }
+    function member() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in teachers();
+    }
+
+    // 탐구단원: 등록된 선생님만 읽기·쓰기
+    match /schools/{school}/units/{unit} {
+      allow read, write: if member();
+    }
+
+    // 그 밖의 경로는 모두 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
