@@ -1,3 +1,7 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
 <title>낙성 탐구 설계실</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -59,7 +63,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:700;text-wrap:balance;margin:0
 .topbar h2{font-size:26px}
 .topbar .sub{color:var(--muted);font-size:13px;margin-top:4px}
 .topbar .actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-.menu-btn{display:none}
+.btn.menu-btn{display:none}
 
 /* controls */
 .btn{border:1px solid var(--line-strong);background:var(--surface);padding:7px 13px;border-radius:var(--r);cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -339,7 +343,7 @@ body.pv-open .app,body.pv-open #chat{display:none}
   .app{grid-template-columns:1fr}
   .side{position:fixed;inset:0 auto 0 0;width:260px;z-index:40;transform:translateX(-100%);transition:transform .2s;padding-top:calc(20px + env(safe-area-inset-top,0px))}
   .side.open{transform:none;box-shadow:0 0 0 100vmax rgba(0,0,0,.3)}
-  .menu-btn{display:inline-flex}
+  .btn.menu-btn{display:inline-flex}
   .loi{grid-template-columns:1fr}.loi .tag{padding:0}
   .grasps{grid-template-columns:28px 1fr}.grasps .field{grid-column:1/-1}
 }
@@ -414,6 +418,8 @@ td.rowbtn .btn{padding:5px 7px}
   @page{size:A4 portrait;margin:14mm}
 }
 </style>
+</head>
+<body>
 
 <div class="app">
   <aside class="side" id="side"></aside>
@@ -446,3 +452,5 @@ td.rowbtn .btn{padding:5px 7px}
 <script src="starters.js?v=6"></script>
 <script src="print.js?v=6"></script>
 <script>if (window.APP && APP.rerender) APP.rerender();</script>
+</body>
+</html>
