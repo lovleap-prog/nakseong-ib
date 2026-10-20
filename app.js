@@ -247,7 +247,9 @@
   }
   function refStd() {
     return '<div class="ref"><div class="box" style="grid-column:1/-1"><dl><dt>수록 범위</dt><dd>' +
-      [1, 2, 3, 4, 5, 6].map(function (g) { var l = STD_API.list(g); return g + "학년: " + l.filter(function (r) { return r.inPlan; }).length + "개(올해 지도계획) / " + l.length + "개(" + STD_API.band(g) + "학년군 전체)"; }).join("<br>") +
+      [1, 2, 3, 4, 5, 6].map(function (g) { var l = STD_API.list(g);
+        return '<div class="std-line"><span>' + g + "학년: " + l.filter(function (r) { return r.inPlan; }).length + "개(올해 지도계획) / " + l.length + "개(" + STD_API.band(g) + "학년군 전체)</span>" +
+          '<button class="btn ghost" data-act="printStd" data-g="' + g + '">올해 지도계획 인쇄</button><button class="btn ghost" data-act="printStd" data-g="' + g + '" data-all="1">학년군 전체 인쇄</button></div>'; }).join("") +
       "</dd><dt>성취기준·성취수준</dt><dd>교육부 「2022 개정 교육과정에 따른 성취수준」(초등 1~2, 3~4, 5~6학년군)</dd>" +
       "<dt>학년·학기·단원 연결</dt><dd>낙성초 2026학년도 학년별 교과·창의적 체험활동 연간지도계획</dd>" +
       "<dt>확인이 필요한 항목</dt><dd>4도03-02, 4영01-06, 6도01-02, 6도03-03 — 원본 PDF 표가 겹쳐 문장 일부만 추출됨</dd></dl></div></div>";
@@ -541,6 +543,7 @@
     },
     goStarters: function () { st.view = "ref"; st.refTab = "starters"; render(); window.scrollTo(0, 0); },
     welcomeOff: function () { try { localStorage.setItem("nakseong-uoi-welcome", "off"); } catch (e) {} render(); toast("안내를 닫았습니다. 자료실에서 언제든 다시 볼 수 있어요."); },
+    printStd: function (u, el) { if (window.printStd) window.printStd(Number(el.dataset.g), !!el.dataset.all); return false; },
     printUnit: function (u) { if (window.printUnit) window.printUnit(u); return false; },
     import: function () { document.getElementById("importFile").click(); },
     // ───── 학교 공동 저장소 ─────
