@@ -64,10 +64,12 @@
     var cells = [["탐구열기", "탐구 열기", ""], ["LOI1", "LOI 1", 0], ["LOI2", "LOI 2", 1], ["LOI3", "LOI 3", 2], ["탐구 마무리", "마무리", ""]];
     return '<div class="flowmap">' + cells.map(function (c) {
       var l = c[2] === "" ? null : (u.lois[c[2]] || {});
-      return '<div class="' + (l ? "fm-loi" : "fm-end") + '"><b>' + c[1] + (l && l.concept ? ' <span class="cc">' + esc(l.concept) + "</span>" : "") +
-        ' <span class="fm-n mono">' + countOf(u, c[0]) + "차시</span></b>" + (l && l.text ? "<small>" + esc(l.text) + "</small>" : "") + seqHtml(u, c[0]) + "</div>";
+      var on = (UI.flow || "LOI1") === c[0];
+      return '<div class="' + (l ? "fm-loi" : "fm-end") + (on ? " on" : "") + '" data-act="pickFlow" data-f="' + esc(c[0]) + '" role="button" tabindex="0" aria-pressed="' + on + '" title="눌러서 고르면 ＋ 차시가 이 흐름에 들어갑니다"><b>' + c[1] + (l && l.concept ? ' <span class="cc">' + esc(l.concept) + "</span>" : "") +
+        ' <span class="fm-n mono">' + countOf(u, c[0]) + "차시</span>" +
+        '<button class="btn ghost fm-add" data-act="addLessonIn" data-f="' + esc(c[0]) + '" aria-label="' + c[1] + '에 차시 넣기">＋</button></b>' + (l && l.text ? "<small>" + esc(l.text) + "</small>" : "") + seqHtml(u, c[0]) + "</div>";
     }).join("") +
-      '<p class="fm-note">정해진 순서는 없습니다. 차시마다 고른 <b>탐구 조각</b>이 어떤 순서로 이어지는지 비춰 보는 거울입니다.' + H.help("탐구 조각") + "</p></div>" +
+      '<p class="fm-note">정해진 순서는 없습니다. 차시마다 고른 <b>탐구 조각</b>이 어떤 순서로 이어지는지 비춰 보는 거울입니다. 칸을 누르면 위의 <b>＋ 차시</b>가 그 흐름에 들어갑니다.' + H.help("탐구 조각") + "</p></div>" +
       '<details class="more tip"><summary>설계 팁 · 작은 탐구 흐름 <span class="need opt">참고</span></summary><div class="more-body">' +
       "<p>LOI 하나 안에서도 <b>지식·이해 → 조사 → 정리·분석 → 표현·공유</b>가 이어지면, 학생이 자기 이해를 만들 시간이 생깁니다.</p>" +
       "<ul class=\"plain\"><li>국내 IB 학교 <b>컨설팅에서 나온 팁</b>이며, IB 공식 지침은 아닙니다.</li>" +
@@ -115,7 +117,7 @@
     var n = Number(u.lessonsPlanned) || 0;
     return H.guide("lessons") +
       '<section class="sec">' + H.secH("차시 운영 계획", "Lesson sequence",
-        H.prompt("lessons") + H.ai("lessons", "AI 제안") + '<button class="btn" data-act="scaffold">차시 뼈대 만들기</button><button class="btn" data-act="addLesson">＋ 차시</button>') +
+        H.prompt("lessons") + H.ai("lessons", "AI 제안") + '<button class="btn" data-act="scaffold">차시 뼈대 만들기</button><button class="btn" data-act="addLesson">＋ ' + ({ "탐구열기": "탐구 열기", "탐구 마무리": "마무리" }[UI.flow] || (UI.flow || "LOI1").replace("LOI", "LOI ")) + ' 차시</button>') +
       flowMap(u) +
       '<div class="row">' + H.field(free ? "차시에 고를 목록" : "탐구 모형", H.sel("model", u.model, Object.keys(P.models)),
         free ? "‘탐구 조각’은 순서 없이 골라 조합합니다. 개념 기반 탐구·머독 사이클 단계로 고르고 싶으면 바꾸세요(둘 다 IB 공식 모형이 아닌 참고 모형)." : "두 모형 모두 IB 공식 모형이 아닌 참고 모형이며, 한 번 도는 순서가 아니라 되풀이되는 순환입니다. 순서 없이 고르려면 ‘탐구 조각’으로 바꾸세요.") +

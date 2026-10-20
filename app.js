@@ -403,6 +403,8 @@
     UI.open[d.dataset.more] = d.open; saveUI();
   }, true);
 
+  function flowName(f) { return f === "탐구열기" ? "탐구 열기" : f === "탐구 마무리" ? "마무리" : f.replace("LOI", "LOI "); }
+
   var actions = window.APP_ACTIONS = {
     menu: function () { side.classList.toggle("open"); },
     mode: function (u, el) { UI.guided = el.dataset.v === "guided"; saveUI(); var y = window.scrollY; render(); window.scrollTo(0, y); toast(UI.guided ? "안내 모드로 바꿨습니다." : "전체 보기로 바꿨습니다."); },
@@ -494,7 +496,9 @@
       if (!lines.length) { toast("먼저 성공 기준을 한 줄에 하나씩 적어 주세요."); return false; }
       lines.forEach(function (l) { u.rubric.push({ name: l, domain: "", levels: ["", "", "", ""] }); });
     },
-    addLesson: function (u) { u.lessons.push({ flow: "LOI1", stage: "", ilp: "", method: "", note: "", reflection: "", studentRefl: "", studentWork: "" }); },
+    // 흐름 지도에서 칸을 누르면 그 흐름이 골라지고, 위쪽 ＋ 차시가 그 흐름에 차시를 넣음
+    pickFlow: function (u, el) { UI.flow = el.dataset.f; var y = window.scrollY; render(); window.scrollTo(0, y); return false; },
+    addLesson: function (u, el) { return actions.addLessonIn(u, { dataset: { f: UI.flow || "LOI1" } }); },
     delLesson: function (u, el) { return removeRow(u, "lessons", Number(el.dataset.i), (Number(el.dataset.i) + 1) + "차시"); },
     moveLesson: function (u, el) {
       var i = Number(el.dataset.i), j = el.dataset.dir === "down" ? i + 1 : i - 1;
@@ -507,9 +511,13 @@
       u.lessons.forEach(function (l, i) { if (l.flow === f) last = i; });
       var stage = /^LOI/.test(f) ? "" : f === "탐구열기" ? c.open[0] : c.close[0];
       if (f === "탐구 마무리" && last >= 0 && u.lessons[last].stage === c.reflect) last--; // 마지막 성찰 차시 앞에
-      if (last < 0) last = u.lessons.length - 1;
+      if (last < 0) { // 이 흐름에 차시가 없으면 앞 흐름들의 마지막 차시 뒤에
+        var order = P.flows.indexOf(f);
+        u.lessons.forEach(function (l, i) { var k = P.flows.indexOf(l.flow); if (k >= 0 && k < order) last = i; });
+      }
       u.lessons.splice(last + 1, 0, { flow: f, stage: stage, ilp: "", method: "", note: "", reflection: "", studentRefl: "", studentWork: "" });
-      toast((last + 2) + "차시를 넣었습니다." + (stage ? "" : " 탐구 조각을 골라 주세요."));
+      UI.flow = f;
+      toast(flowName(f) + "에 차시를 넣었습니다(전체 " + (last + 2) + "번째)." + (stage ? "" : " 탐구 조각을 골라 주세요."));
     },
     scaffold: function (u) { scaffold(u); return false; },
     xlsxUnit: function (u) { Exporter.xlsx([u], true); return false; },
@@ -574,7 +582,8 @@
     var r = fn(u, el);
     if (u && r !== false && ["menu", "mode", "newUnit", "dupUnit", "delUnit", "resetTab", "resetUnit", "xlsxAll", "backup", "import", "goStarters", "welcomeOff"].indexOf(el.dataset.act) < 0) { delete u.example; S.save(u); render(); window.scrollTo(0, y); }
   });
-  document.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && e.target.dataset && e.target.dataset.toggle) { e.preventDefault(); toggle(e.target); } });
+  document.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && e.target.dataset && e.target.dataset.toggle) { e.preventDefault(); toggle(e.target); }
+    else if ((e.key === "Enter" || e.key === " ") && e.target.dataset && e.target.dataset.act === "pickFlow") { e.preventDefault(); e.target.click(); } });
 
   document.getElementById("importFile").addEventListener("change", function (e) {
     var f = e.target.files[0]; if (!f) return;
