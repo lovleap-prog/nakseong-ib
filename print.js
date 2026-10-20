@@ -58,4 +58,50 @@
       try { window.print(); } catch (e) { toast("이 화면에서는 인쇄 창을 열 수 없습니다. Ctrl+P를 눌러 보세요."); }
     };
   };
+
+  // 성취기준 목록 인쇄 — 자료실 > 성취기준 자료의 학년별 수록 범위에서 엶
+  function stdRows(grade, all) {
+    return window.STD_API.list(grade).filter(function (r) { return all || r.inPlan; });
+  }
+  function stdHtml(grade, all, lv) {
+    var rows = stdRows(grade, all), band = window.STD_API.band(grade), cols = lv ? 7 : 5, prev = null;
+    var h = '<div class="pv-page pv-std"><div class="pv-head"><div><span>' + esc((window.SCHOOL && SCHOOL.name) || "") + " · 2022 개정 교육과정 성취기준</span><h1>" +
+      grade + "학년 " + (all ? band + "학년군 전체" : "올해 지도계획") + "</h1></div><span>" + rows.length + "개</span></div>" +
+      "<table><colgroup><col style=\"width:68px\"><col style=\"width:" + (lv ? 62 : 80) + "px\"><col><col style=\"width:38px\"><col style=\"width:" + (lv ? "16%" : "26%") + "\">" +
+      (lv ? "<col style=\"width:20%\"><col style=\"width:20%\">" : "") + "</colgroup><thead><tr><th>코드</th><th>영역</th><th>성취기준</th>" + (all ? "<th>올해</th>" : "<th>학기</th>") + "<th>단원</th>" +
+      (lv ? "<th>A</th><th>B · C</th>" : "") + "</tr></thead><tbody>";
+    rows.forEach(function (r) {
+      if (r.subject !== prev) { h += '<tr class="pv-subj"><td colspan="' + cols + '">' + esc(r.subject) + "</td></tr>"; prev = r.subject; }
+      h += '<tr><td class="c nw">' + esc(r.code) + '</td><td>' + esc(r.strand) + "</td><td>" + esc(r.text) + (r.partial ? ' <span class="empty">(원문 확인 필요)</span>' : "") + "</td>" +
+        (all ? '<td class="c">' + (r.inPlan ? "○" : "") + "</td>" : '<td class="c">' + esc(r.sem) + "</td>") +
+        '<td class="pv-small">' + esc(r.units.join(", ")) + "</td>" +
+        (lv ? '<td class="pv-small">' + esc(r.A) + '</td><td class="pv-small">B: ' + esc(r.B) + "<br>C: " + esc(r.C) + "</td>" : "") + "</tr>";
+    });
+    if (!rows.length) h += '<tr><td colspan="' + cols + '" class="empty">—</td></tr>';
+    return h + "</tbody></table></div>";
+  }
+  function stdXlsx(grade, all) {
+    if (!window.XLSX) { toast("엑셀 도구를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요."); return; }
+    var aoa = [["교과", "코드", "영역", "성취기준", "올해 지도계획", "학기", "단원", "성취수준 A", "성취수준 B", "성취수준 C"]];
+    stdRows(grade, all).forEach(function (r) { aoa.push([r.subject, r.code, r.strand, r.text, r.inPlan ? "○" : "", r.sem, r.units.join(", "), r.A, r.B, r.C]); });
+    var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [8, 11, 14, 50, 8, 6, 30, 40, 40, 40].map(function (w) { return { wch: w }; });
+    XLSX.utils.book_append_sheet(wb, ws, grade + "학년");
+    XLSX.writeFile(wb, grade + "학년_성취기준_" + (all ? window.STD_API.band(grade) + "학년군전체" : "올해지도계획") + ".xlsx");
+  }
+  window.printStd = function (grade, all) {
+    var box = document.getElementById("printView"), lv = false;
+    function draw() {
+      box.innerHTML = '<div class="pv-bar"><b>성취기준 인쇄</b><span>A4 세로 기준입니다. 교과별로 묶어 보여 줍니다.</span>' +
+        '<label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="pvLv"' + (lv ? " checked" : "") + "> 성취수준(A·B·C) 함께</label>" +
+        '<button class="btn" id="pvXlsx">엑셀로 내려받기</button><button class="btn primary" id="pvPrint">인쇄</button><button class="btn" id="pvClose">닫기</button></div>' + stdHtml(grade, all, lv);
+      document.getElementById("pvLv").onchange = function (e) { lv = e.target.checked; draw(); };
+      document.getElementById("pvXlsx").onclick = function () { stdXlsx(grade, all); };
+      document.getElementById("pvClose").onclick = function () { box.hidden = true; box.innerHTML = ""; document.body.classList.remove("pv-open"); };
+      document.getElementById("pvPrint").onclick = function () {
+        try { window.print(); } catch (e) { toast("이 화면에서는 인쇄 창을 열 수 없습니다. Ctrl+P를 눌러 보세요."); }
+      };
+    }
+    draw(); box.hidden = false; document.body.classList.add("pv-open"); window.scrollTo(0, 0);
+  };
 })();
