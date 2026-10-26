@@ -414,8 +414,16 @@ td.rowbtn .btn{padding:5px 7px}
 .jt-bar i{display:block;height:100%;background:var(--accent)}
 .jt-foot{display:flex;justify-content:flex-end;margin-top:8px}
 .jt-n{margin-left:6px}
-.jt-note{display:flex;flex-direction:column;gap:6px;margin:-6px 0 16px;font-size:13px}
-.jt-note>span{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.jt-note{display:flex;flex-direction:column;gap:10px;margin:-6px 0 18px;font-size:13px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:12px 14px}
+.jt-note-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.jt-note-h .hint{font-size:12px;color:var(--faint)}
+.jt-item{display:flex;flex-direction:column;gap:6px;border-left:3px solid var(--accent);padding-left:10px}
+.jt-item-h{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.jt-item-h .lnk{font-weight:600}
+.jt-item input{font-size:12.5px}
+.jt-item .jt-small{margin-top:0}
+.jt-join{display:flex;flex-wrap:wrap;gap:8px}
+.jt-join select{width:auto;flex:1 1 240px;max-width:420px}
 .jt-lens{color:var(--muted);font-size:12px}
 .jt-tag{display:inline-flex;max-width:100%;white-space:nowrap;align-items:center;gap:4px;margin-top:6px;font-size:11.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 4px 1px 8px;line-height:1.4}
 .jt-tag>span{overflow:hidden;text-overflow:ellipsis}
@@ -484,26 +492,26 @@ table.lessons tr.jt-row td{background:color-mix(in srgb,var(--accent-soft) 45%,t
 <input type="file" id="importFile" accept=".json" hidden>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="data.js?v=9"></script>
-<script src="school.js?v=9"></script>
-<script src="standards.js?v=9"></script>
-<script src="starters_a.js?v=9"></script>
-<script src="starters_b.js?v=9"></script>
-<script src="starters_c.js?v=9"></script>
-<script src="firebase-config.js?v=9"></script>
-<script src="firebase.js?v=9"></script>
-<script src="store.js?v=9"></script>
-<script src="unit.js?v=9"></script>
-<script src="unit2.js?v=9"></script>
-<script src="app.js?v=9"></script>
-<script src="std.js?v=9"></script>
-<script src="prompts.js?v=9"></script>
-<script src="bridge.js?v=9"></script>
-<script src="ai.js?v=9"></script>
-<script src="chat.js?v=9"></script>
-<script src="starters.js?v=9"></script>
-<script src="print.js?v=9"></script>
-<script src="joint.js?v=9"></script>
+<script src="data.js?v=10"></script>
+<script src="school.js?v=10"></script>
+<script src="standards.js?v=10"></script>
+<script src="starters_a.js?v=10"></script>
+<script src="starters_b.js?v=10"></script>
+<script src="starters_c.js?v=10"></script>
+<script src="firebase-config.js?v=10"></script>
+<script src="firebase.js?v=10"></script>
+<script src="store.js?v=10"></script>
+<script src="unit.js?v=10"></script>
+<script src="unit2.js?v=10"></script>
+<script src="app.js?v=10"></script>
+<script src="std.js?v=10"></script>
+<script src="prompts.js?v=10"></script>
+<script src="bridge.js?v=10"></script>
+<script src="ai.js?v=10"></script>
+<script src="chat.js?v=10"></script>
+<script src="starters.js?v=10"></script>
+<script src="print.js?v=10"></script>
+<script src="joint.js?v=10"></script>
 <script>if (window.APP && APP.rerender) APP.rerender();</script>
 </body>
 </html>

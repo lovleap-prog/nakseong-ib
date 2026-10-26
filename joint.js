@@ -214,18 +214,22 @@
   function untag(a, u) { var n = 0; u.lessons.forEach(function (l) { if (l.joint === a.id) { delete l.joint; n++; } }); if (n) window.APP.save(u); return n; }
 
   // ───── 동작 (모두 false 를 돌려줘 열려 있던 단원을 저장하지 않게 함) ─────
+  function askNew(cb) {
+    window.APP.dialog({ title: "새 교육활동 만들기", ok: "만들기",
+      body: '<label class="field"><span class="label">활동 이름</span><input type="text" name="name" placeholder="예: 알뜰장터"></label>' +
+        '<label class="field"><span class="label">시기</span><input type="text" name="period" placeholder="예: 10월 3~4주"></label>' +
+        '<label class="field"><span class="label">공동 차시 (학년마다)</span><input type="number" name="hours" min="1" max="20" value="4"></label>' })
+      .then(function (v) { if (v) cb((v.name || "").trim(), (v.period || "").trim(), Math.max(1, Math.min(20, Number(v.hours) || 4))); });
+  }
   A.jointNew = function (u, el) {
     var name = el.dataset.name || "", period = el.dataset.period || "";
-    var go = function (nm, pd) {
-      var a = newAct(); a.name = nm; a.period = pd; S.saveAct(a, true);
+    var go = function (nm, pd, hr) {
+      var a = newAct(); a.name = nm; a.period = pd; if (hr) a.hours = hr; S.saveAct(a, true);
       var s = st(); s.view = "joint"; s.actId = a.id; rerender(); window.scrollTo(0, 0);
       toast("‘" + (nm || "새 교육활동") + "’" + jo(nm || "새 교육활동", "을", "를") + " 만들었습니다. 참여 단원을 넣어 주세요.");
     };
     if (name) { go(name, period); return false; }
-    window.APP.dialog({ title: "새 교육활동 만들기", ok: "만들기",
-      body: '<label class="field"><span class="label">활동 이름</span><input type="text" name="name" placeholder="예: 알뜰장터"></label>' +
-        '<label class="field"><span class="label">시기</span><input type="text" name="period" placeholder="예: 10월 3~4주"></label>' })
-      .then(function (v) { if (v) go((v.name || "").trim(), (v.period || "").trim()); });
+    askNew(go);
     return false;
   };
   A.jointPick = function (u, el) { st().actId = el.dataset.id; rerender(); return false; };
@@ -315,14 +319,62 @@
   };
   J.isJoint = function (u, l) { return !!l.joint && J.forUnit(u).some(function (a) { return a.id === l.joint; }); };
   // 흐름 지도 아래 안내 줄
+  // 단원 화면(차시 운영)의 함께하는 교육활동 칸 — 여기서 바로 참여·공동 차시 넣기·관점 적기
   J.unitNote = function (u) {
-    var acts = J.forUnit(u); if (!acts.length) return "";
-    return '<div class="jt-note">' + acts.map(function (a) {
-      var s = statusOf(a, u), link = a.units.find(function (x) { return x.id === u.id; }) || {};
-      return '<span>🤝 <button class="lnk" data-act="openJoint" data-id="' + a.id + '">' + esc(a.name || "교육활동") + '</button> <span class="pill ' + s.level + '">' + s.text + "</span>" +
-        (link.lens ? ' <span class="jt-lens">관점: ' + esc(link.lens) + "</span>" : "") + "</span>";
-    }).join("") + "</div>";
+    var mine = J.forUnit(u), others = J.list().filter(function (a) { return mine.indexOf(a) < 0; });
+    var h = '<div class="jt-note"><div class="jt-note-h"><b>🤝 함께하는 교육활동</b><span class="hint">여러 학년이 함께 준비·운영하는 학교 교육활동(예: 알뜰장터)에 이 단원을 연결합니다.</span></div>';
+    h += mine.map(function (a) {
+      var s = statusOf(a, u), link = a.units.find(function (x) { return x.id === u.id; }) || {}, n = J.members(a).length;
+      return '<div class="jt-item"><div class="jt-item-h"><button class="lnk" data-act="openJoint" data-id="' + a.id + '">' + esc(a.name || "교육활동") + "</button>" +
+        (a.period ? '<span class="jt-lens">' + esc(a.period) + "</span>" : "") + '<span class="jt-lens">' + n + "개 단원 함께</span>" +
+        '<span class="pill ' + s.level + '">' + s.text + "</span>" +
+        (s.n < s.h ? '<button class="btn ghost jt-small" data-act="jointFillHere" data-aid="' + a.id + '">＋ 공동 차시 ' + (s.h - s.n) + "개 넣기</button>" : "") +
+        '<button class="btn ghost jt-small danger" data-act="jointLeave" data-aid="' + a.id + '">참여 빼기</button></div>' +
+        '<input type="text" data-lens="' + a.id + '" value="' + esc(link.lens || "") + '" placeholder="이 단원에서 바라보는 관점 — 예: 필요와 바람, 물건의 가치는 어떻게 정해질까?" aria-label="이 단원에서 바라보는 관점"></div>';
+    }).join("");
+    h += '<div class="jt-join">' + (others.length ? '<select id="jtJoin" aria-label="참여할 교육활동"><option value="">참여할 교육활동 고르기</option>' + others.map(function (a) {
+      return '<option value="' + a.id + '">' + esc(a.name || "이름 없는 활동") + (a.period ? " · " + esc(a.period) : "") + " (" + J.members(a).length + "개 단원)</option>";
+    }).join("") + '</select><button class="btn" data-act="jointJoin">참여</button>' : "") +
+      '<button class="btn ghost" data-act="jointNewHere">＋ 새 교육활동 만들어 참여</button></div></div>';
+    return h;
   };
+  // 단원 화면에서 쓰는 동작 (u = 지금 열린 단원)
+  function joinUnit(a, u) {
+    if (!a.units.some(function (x) { return x.id === u.id; })) a.units.push({ id: u.id, lens: "" });
+    S.saveAct(a, true); rerender();
+    fill(a, u); // 이어서 공동 차시를 어디에 넣을지 물음 (취소해도 참여는 됨)
+  }
+  A.jointJoin = function (u) {
+    var sel = document.getElementById("jtJoin"), a = sel && S.acts[sel.value];
+    if (!u || !a) { toast("참여할 교육활동을 먼저 고르세요."); return false; }
+    joinUnit(a, u); return false;
+  };
+  A.jointNewHere = function (u) {
+    if (!u) return false;
+    askNew(function (nm, pd, hr) {
+      var a = newAct(); a.name = nm; a.period = pd; a.hours = hr; st().actId = a.id;
+      joinUnit(a, u);
+    });
+    return false;
+  };
+  A.jointFillHere = function (u, el) { var a = S.acts[el.dataset.aid]; if (u && a) fill(a, u); return false; };
+  A.jointLeave = function (u, el) {
+    var a = S.acts[el.dataset.aid]; if (!u || !a) return false;
+    var n = J.count(u, a.id);
+    window.APP.dialog({ title: q(a.name || "교육활동", "에서", "에서") + " 이 단원을 뺄까요?", ok: "빼기", danger: true,
+      body: "<span>" + (n ? "차시표의 공동 차시 " + n + "개는 <b>지우지 않고</b> 공동 표시만 없앱니다." : "차시표는 바뀌지 않습니다.") + "</span>" })
+      .then(function (v) {
+        if (!v) return;
+        untag(a, u); a.units = a.units.filter(function (x) { return x.id !== u.id; }); S.saveAct(a); rerender();
+      });
+    return false;
+  };
+  document.addEventListener("input", function (e) {
+    var id = e.target.dataset && e.target.dataset.lens, cu = window.APP.cur(), a = id && S.acts[id];
+    if (!a || !cu) return;
+    var link = a.units.find(function (x) { return x.id === cu.id; }); if (!link) return;
+    link.lens = e.target.value; S.saveAct(a);
+  });
   // 설계 점검 항목
   J.checks = function (u) {
     return J.forUnit(u).map(function (a) {
