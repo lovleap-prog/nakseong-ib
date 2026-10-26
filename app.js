@@ -21,7 +21,8 @@
     var list = units().sort(function (a, b) { return a.grade - b.grade || themeIdx(a.theme) - themeIdx(b.theme); });
     side.innerHTML = '<div class="brand"><h1>낙성 탐구 설계실</h1><p>IB PYP 탐구단원(UOI) 플래너</p></div>' +
       '<nav class="nav"><span class="label" style="padding:0 10px 4px">학교 전체</span>' +
-      navBtn("poi", "탐구 프로그램 (POI)", units().length + "단원") + navBtn("manage", "탐구단원 관리") + navBtn("ref", "자료실") + "</nav>" +
+      navBtn("poi", "탐구 프로그램 (POI)", units().length + "단원") + navBtn("manage", "탐구단원 관리") +
+      navBtn("joint", "함께하는 교육활동", S.actList().length ? S.actList().length + "개" : "") + navBtn("ref", "자료실") + "</nav>" +
       '<nav class="nav"><span class="label" style="padding:0 10px 4px">탐구단원</span>' +
       list.map(function (u) {
         var t = themeOf(u.theme);
@@ -106,6 +107,7 @@
           return '<button class="ucard" data-open="' + u.id + '" style="--tc:var(--' + t.color + ')"><b>' + esc(u.title || "제목 없음") + "</b><p>" + esc(u.centralIdea) + '</p><div class="foot">' +
             (u.semester ? '<span class="cc sem">' + u.semester + "</span>" : "") +
             u.concepts.map(function (c) { return '<span class="cc">' + c + "</span>"; }).join("") +
+            (window.JOINT && JOINT.forUnit(u).length ? '<span class="cc" title="함께하는 교육활동: ' + esc(JOINT.forUnit(u).map(function (a) { return a.name; }).join(", ")) + '">🤝</span>' : "") +
             '<span class="pill ' + (sc >= 80 ? "ok" : sc >= 50 ? "warn" : "bad") + '" style="margin-left:auto">' + sc + "</span>" + (here.length > 1 ? "" : "") + "</div></button>";
         }).join("") + (here.length ? "" : '<button class="add" data-new="' + g + "|" + t.id + '">＋ 단원</button>') + "</div>";
       });
@@ -298,6 +300,7 @@
     if (st.view === "poi") renderPOI();
     else if (st.view === "ref") renderRef();
     else if (st.view === "manage") renderManage();
+    else if (st.view === "joint") main.innerHTML = window.renderJoint ? renderJoint() : "";
     else main.innerHTML = renderUnit(cur(), st.tab, units());
     if (window.renderChat) renderChat();
     remember();
@@ -326,7 +329,7 @@
     }
     if (k === "theme") u.subs = [];
     setPath(u, k, v); delete u.example; S.save(u);
-    if (STRUCT[k] || /\.concept$|\.stage$|\.subject$/.test(k)) render();
+    if (STRUCT[k] || /\.concept$|\.stage$|\.subject$|\.joint$/.test(k)) render();
     else if (/^(title|centralIdea)$/.test(k)) {
       refreshChecks();
       if (k === "centralIdea") { var live = document.getElementById("ciLive"); if (live) live.innerHTML = ciLive(v); } var top = main.querySelector(k === "title" ? ".topbar h2" : ".topbar .sub"); if (top) top.textContent = v || (k === "title" ? "제목 없는 탐구단원" : ""); }
@@ -525,7 +528,7 @@
     xlsxUnit: function (u) { Exporter.xlsx([u], true); return false; },
     xlsxAll: function () { Exporter.xlsx(units()); },
     backup: function () {
-      Exporter.json(units().filter(function (u) { return !u.example; }));
+      Exporter.json(units().filter(function (u) { return !u.example; }), S.actList());
       try { localStorage.setItem("nakseong-uoi-backup", String(Date.now())); } catch (e) {}
       setTimeout(renderSide, 300);
     },
@@ -591,17 +594,20 @@
   document.getElementById("importFile").addEventListener("change", function (e) {
     var f = e.target.files[0]; if (!f) return;
     f.text().then(function (txt) {
-      var data = JSON.parse(txt), list = data.units || [];
-      if (!list.length) throw new Error();
-      var copied = 0;
+      var data = JSON.parse(txt), list = data.units || [], acts = data.activities || [];
+      if (!list.length && !acts.length) throw new Error();
+      var copied = 0, moved = {};
       list.forEach(function (u) {
         u = migrateUnit(u);
         var mine = S.units[u.id];
         // 같은 단원이 이미 있고 내용이 다르면 덮어쓰지 않고 복사본으로 들여옴
-        if (mine && JSON.stringify(mine) !== JSON.stringify(u)) { u.id = newUnit().id; u.title = (u.title || "탐구단원") + " (가져옴)"; delete u.example; copied++; }
+        if (mine && JSON.stringify(mine) !== JSON.stringify(u)) { var old = u.id; u.id = newUnit().id; moved[old] = u.id; u.title = (u.title || "탐구단원") + " (가져옴)"; delete u.example; copied++; }
         S.save(u, true);
       });
-      render(); toast(list.length + "개 단원을 불러왔습니다." + (copied ? " 이미 있던 " + copied + "개는 ‘(가져옴)’ 복사본으로 넣었습니다." : ""));
+      // 함께하는 교육활동: 같은 활동이 있으면 백업 쪽 내용으로 바꿈 (단원 연결이 활동 id에 걸려 있으므로 복사본을 만들지 않음)
+      // 복사본으로 들어온 단원은 백업 속 활동이 그 복사본을 가리키게 함
+      acts.forEach(function (a) { a = migrateAct(a); a.units.forEach(function (x) { if (moved[x.id]) x.id = moved[x.id]; }); S.saveAct(a, true); });
+      render(); toast(list.length + "개 단원" + (acts.length ? "과 교육활동 " + acts.length + "개" : "") + "를 불러왔습니다." + (copied ? " 이미 있던 단원 " + copied + "개는 ‘(가져옴)’ 복사본으로 넣었습니다." : ""));
     }).catch(function () { toast("이 앱에서 만든 JSON 백업 파일이 아닙니다."); });
     e.target.value = "";
   });

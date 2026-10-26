@@ -263,6 +263,20 @@ window.migrateUnit = function (u) {
   return u;
 };
 
+// 함께하는 교육활동 — 여러 학년의 탐구단원이 함께 준비·운영하는 학교 교육활동(예: 알뜰장터)
+//  hours: 참여 단원마다 쓰는 공동 차시(학년마다 각자 이만큼) · units: [{ id: 단원 id, lens: 이 단원에서 바라보는 관점 }]
+window.newAct = function () {
+  return { id: "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), kind: "activity",
+    name: "", period: "", hours: 4, place: "", together: "", units: [], updatedAt: Date.now() };
+};
+window.migrateAct = function (a) {
+  var base = window.newAct();
+  Object.keys(base).forEach(function (k) { if (a[k] === undefined) a[k] = base[k]; });
+  a.units = (a.units || []).filter(function (x) { return x && x.id; });
+  a.units.forEach(function (x) { if (x.lens === undefined) x.lens = ""; });
+  return a;
+};
+
 // 예시 단원 — 화면에 '예시'로 표시되며 삭제·수정 가능
 window.exampleUnit = function () {
   var u = window.newUnit(3, "HWEO");
