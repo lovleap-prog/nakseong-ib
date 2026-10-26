@@ -2,11 +2,14 @@
 // backend: "cloud"(파이어베이스) | "claude" | "local"
 (function () {
   var LS = "nakseong-uoi-v1";
-  var S = window.Store = { units: {}, mode: "local", backend: "local", onChange: null, status: "live", cloud: null, localOnly: [] };
+  // acts: 함께하는 교육활동(여러 단원이 함께 쓰는 학교 교육활동). 서버에서는 단원과 같은 곳에 kind:"activity"로 저장
+  var S = window.Store = { units: {}, acts: {}, mode: "local", backend: "local", onChange: null, status: "live", cloud: null, localOnly: [] };
   var db = null, timers = {}, writing = {}, again = {}, seen = {};
 
   function lsLoad() { try { return JSON.parse(localStorage.getItem(LS) || "null"); } catch (e) { return null; } }
-  function lsSave() { try { localStorage.setItem(LS, JSON.stringify(S.units)); } catch (e) {} }
+  function lsSave() { try { localStorage.setItem(LS, JSON.stringify(Object.assign({}, S.units, S.acts))); } catch (e) {} }
+  function isAct(o) { return !!o && o.kind === "activity"; }
+  function get(id) { return S.units[id] || S.acts[id]; }
   function emit() { S.onChange && S.onChange(); }
   function setStatus(s) { S.status = s; var el = document.getElementById("sync"); if (el) el.dataset.s = s; }
 
@@ -14,7 +17,10 @@
     var saved = lsLoad();
     var ex = window.exampleUnit();
     if (saved && Object.keys(saved).length) {
-      S.units = saved; Object.keys(saved).forEach(function (k) { migrateUnit(saved[k]); });
+      Object.keys(saved).forEach(function (k) {
+        if (isAct(saved[k])) S.acts[k] = migrateAct(saved[k]);
+        else S.units[k] = migrateUnit(saved[k]);
+      });
       // 손대지 않은 옛 예시 단원은 새 예시로 바꿈 (고쳐 쓴 예시는 선생님 단원이므로 그대로)
       Object.keys(S.units).forEach(function (k) {
         var o = S.units[k];
@@ -58,17 +64,23 @@
   //  · 지금 저장 중인 단원, 예시 단원, 아직 올리지 않은 내 단원은 지우지 않음
   //  · 전에 서버에 있었는데 사라진 단원은 함께 지움(다른 선생님이 삭제한 경우)
   function applyRemote(map) {
-    var next = {}, localOnly = [];
-    Object.keys(map).forEach(function (k) { seen[k] = true; next[k] = migrateUnit(JSON.parse(JSON.stringify(map[k]))); });
-    Object.keys(S.units).forEach(function (id) {
-      if (next[id]) return;
-      var u = S.units[id];
-      if (timers[id] || writing[id] || u.example) { next[id] = u; return; }
-      if (seen[id]) return;
-      next[id] = u;
-      localOnly.push(id);
+    var next = {}, nextActs = {}, localOnly = [];
+    Object.keys(map).forEach(function (k) {
+      seen[k] = true;
+      var v = JSON.parse(JSON.stringify(map[k]));
+      if (isAct(v)) nextActs[k] = migrateAct(v); else next[k] = migrateUnit(v);
     });
-    S.units = next; S.localOnly = localOnly; lsSave(); emit();
+    [[S.units, next], [S.acts, nextActs]].forEach(function (pair) {
+      Object.keys(pair[0]).forEach(function (id) {
+        if (next[id] || nextActs[id]) return;
+        var u = pair[0][id];
+        if (timers[id] || writing[id] || u.example) { pair[1][id] = u; return; }
+        if (seen[id]) return;
+        pair[1][id] = u;
+        localOnly.push(id);
+      });
+    });
+    S.units = next; S.acts = nextActs; S.localOnly = localOnly; lsSave(); emit();
   }
 
   // 아직 서버에 없는 내 단원을 한꺼번에 올림
@@ -77,14 +89,14 @@
     if (!ids.length) return;
     if (S.backend === "cloud" && !(window.CLOUD && CLOUD.canWrite())) { toast("아직 학교 서버에 연결되지 않았습니다."); return; }
     S.localOnly = [];
-    ids.forEach(function (id) { if (S.units[id]) write(id); });
-    toast(ids.length + "개 단원을 학교 서버에 올렸습니다. 다른 선생님 화면에도 보입니다.");
+    ids.forEach(function (id) { if (get(id)) write(id); });
+    toast(ids.length + "개를 학교 서버에 올렸습니다. 다른 선생님 화면에도 보입니다.");
     emit();
   };
 
   function write(id) {
     lsSave();
-    var u = S.units[id], cloud = S.backend === "cloud";
+    var u = get(id), cloud = S.backend === "cloud";
     // 예시 단원은 공유하지 않고 내 브라우저에만 둠
     if (!db && !cloud) { setStatus("live"); return; }
     if (cloud && u && u.example) { setStatus("live"); return; }
@@ -114,6 +126,16 @@
   };
   S.remove = function (id) { delete S.units[id]; lsSave(); clearTimeout(timers[id]); delete timers[id]; write(id); emit(); };
   S.list = function () { return Object.keys(S.units).map(function (k) { return S.units[k]; }); };
+
+  // 함께하는 교육활동 저장·삭제 (단원과 같은 방식으로 서버에 올라감)
+  S.saveAct = function (a, now) {
+    a.updatedAt = Date.now(); S.acts[a.id] = a; lsSave(); setStatus("saving");
+    clearTimeout(timers[a.id]);
+    var run = function () { delete timers[a.id]; write(a.id); };
+    if (now) run(); else timers[a.id] = setTimeout(run, 900);
+  };
+  S.removeAct = function (id) { delete S.acts[id]; lsSave(); clearTimeout(timers[id]); delete timers[id]; write(id); emit(); };
+  S.actList = function () { return Object.keys(S.acts).map(function (k) { return S.acts[k]; }); };
 
   // toast(메시지, [버튼 이름, 눌렀을 때 실행할 함수]) — 되돌리기 제공
   window.toast = function (msg, label, fn) {
@@ -237,6 +259,7 @@ window.checkUnit = function (u, all) {
   add(r === 3 ? "ok" : "run", "reflect", "교사 성찰(전·중·후)", r + "/3 · 운영하면서 채웁니다", false, "run");
   var rs = ["student", "parent"].filter(function (k) { return filled(u.reflect[k]); }).length;
   add(rs === 2 ? "ok" : "run", "reflect", "학생·학부모 성찰", rs + "/2 · 운영하면서 채웁니다", false, "run");
+  if (window.JOINT) JOINT.checks(u).forEach(function (c) { add(c.level, "lessons", c.text, c.tip); });
   return out;
 };
 
@@ -274,8 +297,8 @@ window.Exporter = {
         .catch(function (e) { if (e.code !== "declined") toast("이 화면에서는 파일을 저장할 수 없습니다."); });
     });
   },
-  json: function (units) {
-    this.save("낙성초_UOI_백업_" + new Date().toISOString().slice(0, 10) + ".json", JSON.stringify({ app: "nakseong-uoi", version: 2, units: units }, null, 2));
+  json: function (units, activities) {
+    this.save("낙성초_UOI_백업_" + new Date().toISOString().slice(0, 10) + ".json", JSON.stringify({ app: "nakseong-uoi", version: 2, units: units, activities: activities || [] }, null, 2));
   },
   xlsx: function (units, onlyUnit) {
     if (!window.XLSX) { toast("엑셀 모듈을 불러오지 못했습니다. JSON으로 백업해 주세요."); return; }

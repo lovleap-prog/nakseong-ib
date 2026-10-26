@@ -67,7 +67,7 @@
       var on = (UI.flow || "LOI1") === c[0];
       return '<div class="' + (l ? "fm-loi" : "fm-end") + (on ? " on" : "") + '" data-act="pickFlow" data-f="' + esc(c[0]) + '" role="button" tabindex="0" aria-pressed="' + on + '" title="눌러서 고르면 ＋ 차시가 이 흐름에 들어갑니다"><b>' + c[1] + (l && l.concept ? ' <span class="cc">' + esc(l.concept) + "</span>" : "") +
         ' <span class="fm-n mono">' + countOf(u, c[0]) + "차시</span>" +
-        '<button class="btn ghost fm-add" data-act="addLessonIn" data-f="' + esc(c[0]) + '" aria-label="' + c[1] + '에 차시 넣기">＋</button></b>' + (l && l.text ? "<small>" + esc(l.text) + "</small>" : "") + seqHtml(u, c[0]) + "</div>";
+        '<button class="btn ghost fm-add" data-act="addLessonIn" data-f="' + esc(c[0]) + '" aria-label="' + c[1] + '에 차시 넣기">＋</button></b>' + (window.JOINT ? JOINT.flowChip(u, c[0]) : "") + (l && l.text ? "<small>" + esc(l.text) + "</small>" : "") + seqHtml(u, c[0]) + "</div>";
     }).join("") +
       '<p class="fm-note">정해진 순서는 없습니다. 차시마다 고른 <b>탐구 조각</b>이 어떤 순서로 이어지는지 비춰 보는 거울입니다. 칸을 누르면 위의 <b>＋ 차시</b>가 그 흐름에 들어갑니다.' + H.help("탐구 조각") + "</p></div>" +
       '<details class="more tip"><summary>설계 팁 · 작은 탐구 흐름 <span class="need opt">참고</span></summary><div class="more-body">' +
@@ -109,7 +109,8 @@
     u.lessons.forEach(function (l, i) {
       if (l.flow !== prev) { rows += blockHead(u, l.flow, cols); prev = l.flow; }
       var p = "lessons." + i + ".", role = stageRole(u.model, l.stage);
-      rows += '<tr><td class="mono" style="padding-top:12px">' + (i + 1) + "</td><td>" + H.sel(p + "flow", l.flow, FLOW_SHORT) + '</td><td class="stg" data-r="' + role + '">' + H.sel(p + "stage", l.stage, stages.map(function (s) { return s[0]; }), free ? "조각 고르기" : "—") +
+      var J = window.JOINT, joint = J && J.isJoint(u, l);
+      rows += '<tr' + (joint ? ' class="jt-row"' : "") + '><td class="mono" style="padding-top:12px">' + (i + 1) + "</td><td>" + H.sel(p + "flow", l.flow, FLOW_SHORT) + (J ? J.lessonSel(u, i) : "") + '</td><td class="stg" data-r="' + role + '">' + H.sel(p + "stage", l.stage, stages.map(function (s) { return s[0]; }), free ? "조각 고르기" : "—") +
         "</td><td>" + H.sel(p + "ilp", l.ilp, P.ilp.map(function (x) { return x[0]; }), "—") + "</td><td>" + H.ta(p + "method", l.method, P.roleHint[role] || "", 2) + "</td>" +
         (UI.guided ? "" : "<td>" + H.ta(p + "note", l.note, "", 2) + "</td><td>" + H.ta(p + "reflection", l.reflection, "의도와 달랐던 점, 아이들 반응", 2) + "</td><td>" + H.ta(p + "studentRefl", l.studentRefl, "", 2) + "</td><td>" + H.ta(p + "studentWork", l.studentWork, "", 2) + "</td>") +
         '<td class="rowbtn"><button class="btn ghost" data-act="moveLesson" data-i="' + i + '" aria-label="위로">↑</button><button class="btn ghost" data-act="moveLesson" data-dir="down" data-i="' + i + '" aria-label="아래로">↓</button><button class="btn ghost" data-act="delLesson" data-i="' + i + '" aria-label="삭제">✕</button></td></tr>';
@@ -118,7 +119,7 @@
     return H.guide("lessons") +
       '<section class="sec">' + H.secH("차시 운영 계획", "Lesson sequence",
         H.prompt("lessons") + H.ai("lessons", "AI 제안") + '<button class="btn" data-act="scaffold">차시 뼈대 만들기</button><button class="btn" data-act="addLesson">＋ ' + ({ "탐구열기": "탐구 열기", "탐구 마무리": "마무리" }[UI.flow] || (UI.flow || "LOI1").replace("LOI", "LOI ")) + ' 차시</button>') +
-      flowMap(u) +
+      flowMap(u) + (window.JOINT ? JOINT.unitNote(u) : "") +
       '<div class="row">' + H.field(free ? "차시에 고를 목록" : "탐구 모형", H.sel("model", u.model, Object.keys(P.models)),
         free ? "‘탐구 조각’은 순서 없이 골라 조합합니다. 개념 기반 탐구·머독 사이클 단계로 고르고 싶으면 바꾸세요(둘 다 IB 공식 모형이 아닌 참고 모형)." : "두 모형 모두 IB 공식 모형이 아닌 참고 모형이며, 한 번 도는 순서가 아니라 되풀이되는 순환입니다. 순서 없이 고르려면 ‘탐구 조각’으로 바꾸세요.") +
       '<div class="field"><span class="label">' + (free ? "조각" : "단계") + " 쓰임 · 차시표 " + u.lessons.length + " / 계획 " + n + '차시</span><div class="chips">' + stages.map(function (s) {

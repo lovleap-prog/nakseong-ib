@@ -40,11 +40,12 @@
     }
 
     h += "<h2>5. 차시 운영 (" + esc(u.model) + ")</h2><table><tr><th>차시</th><th>탐구의 흐름</th><th>탐구 단계</th><th>탐구 기능</th><th>교수학습 활동</th></tr>" +
-      (u.lessons.length ? u.lessons.map(function (l, i) { return '<tr><td class="c">' + (i + 1) + "</td><td>" + esc(l.flow) + "</td><td>" + esc(l.stage) + "</td><td>" + esc(l.ilp) + "</td><td>" + esc(l.method) + "</td></tr>"; }).join("") : '<tr><td colspan="5" class="empty">—</td></tr>') + "</table>";
+      (u.lessons.length ? u.lessons.map(function (l, i) { return '<tr><td class="c">' + (i + 1) + "</td><td>" + esc(l.flow) + (window.JOINT && JOINT.isJoint(u, l) ? "<br>(공동)" : "") + "</td><td>" + esc(l.stage) + "</td><td>" + esc(l.ilp) + "</td><td>" + esc(l.method) + "</td></tr>"; }).join("") : '<tr><td colspan="5" class="empty">—</td></tr>') + "</table>";
 
     h += "<h2>6. 실천과 성찰</h2><table>" + row("예상 실천 유형", esc(u.actionTypes.join(", "))) + row("학생 실천 지원", nl(u.action)) + row("학생이 제안한 실천", nl(u.studentAction)) +
       "<tr><th>교사 성찰(전)</th><td>" + nl(u.reflect.before) + "</td><th>교사 성찰(중)</th><td>" + nl(u.reflect.during) + "</td></tr>" +
       "<tr><th>교사 성찰(후)</th><td>" + nl(u.reflect.teacher) + "</td><th>학생·학부모</th><td>" + nl(u.reflect.student) + (u.reflect.parent ? "<br>" + nl(u.reflect.parent) : "") + "</td></tr></table>";
+    if (window.JOINT) h += JOINT.unitPrint(u);
     return h + "</div>";
   }
 
